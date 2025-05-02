@@ -1,52 +1,39 @@
-Adicionar Itens:
+📥 Como Adicionar Itens:
 
-Clique em qualquer slot vazio (com o ícone "+")
+Encontre um slot vazio (com o ícone "+") e clique nele
 
-Selecione uma imagem com o nome no formato: Nome - Descrição - Tipo - Quantidade
+Selecione uma imagem com o nome no formato:
+Nome - Descrição - Tipo - Quantidade (ex: Pistola Beretta - Pistola 9mm - weapon - 1.jpg)
 
-O sistema extrai automaticamente as informações do nome do arquivo
+Pronto! O sistema vai extrair automaticamente todas as informações
 
-Tipos de Itens:
+🎯 Tipos de Itens:
+• Arma (weapon): Mostra a quantidade no canto inferior direito 🔫
+• Munição (ammo): Mostra a quantidade no canto inferior direito 🔢
+• Outros itens: Mostram apenas a imagem (chaves, documentos, etc.)
 
-weapon: Mostra quantidade (no canto inferior direito)
+🛠️ Gerenciamento:
 
-ammo: Mostra quantidade (no canto inferior direito)
+Clique em qualquer item para selecioná-lo
 
-Outros tipos: Mostram apenas a imagem
+Na descrição, aparecerão opções para:
+➖ Remover o item
+🔢 Ajustar quantidade (apenas para armas e munições)
 
-Gerenciamento:
+✏️ Formato do Nome do Arquivo (Exemplo):
+Pistola Beretta - Pistola 9mm com 15 balas - weapon - 1.jpg
 
-Clique em um item para selecioná-lo
+💡 Dica: Use " - " (espaço + hífen + espaço) para separar as informações!
 
-Na descrição aparecerão botões para:
+💡 Dicas Rápidas:
 
-Remover o item
-
-Ajustar quantidade (para armas e munições)
-
-Formato do Nome do Arquivo:
-
-Exemplo: Pistola Beretta - Pistola 9mm com 15 balas - weapon - 1.jpg
-
-Partes separadas por " - " (espaço-hífen-espaço)
-
-Dicas de Uso:
-Para itens que não precisam de quantidade, você pode omitir o último número:
-
+Para itens sem quantidade (como chaves), você pode omitir o número:
 Chave Vermelha - Abre portas vermelhas - key.jpg
 
-Os tipos suportados são:
+Tipos suportados:
 
-weapon: Para armas (mostra quantidade)
+weapon (armas) | ammo (munição) | heal (cura)
 
-ammo: Para munições (mostra quantidade)
+key (chaves) | document (documentos) | ou qualquer outro para itens genéricos
 
-heal: Para itens de cura
-
-key: Para chaves
-
-document: Para documentos
-
-Qualquer outro valor será tratado como item genérico
-
-Para remover um item, selecione-o e clique no botão "Remover" que aparece na descrição.
+❌ Para remover: Selecione o item e clique em "Remover" na descrição.
