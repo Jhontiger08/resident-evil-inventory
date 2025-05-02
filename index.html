@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resident Evil RPG</title>
+    <link rel="icon" href="imgs/icon.png" type="image/png">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Cabeçalho com Título -->
+        <div class="header-title">
+            <h1>INVENTÁRIO RESIDENT EVIL</h1>
+            <p>Mansão Arklay - Julho de 1998</p>
+        </div>
+
+        <body>
+            <div class="container">
+                <header class="inventory-header">
+                    <div class="character-info">
+                        <div class="character-image" id="character-image">
+                            <span>Clique para adicionar imagem</span>
+                            <input type="file" id="image-upload" accept="image/*" style="display: none;">
+                        </div>
+                        <div class="character-meta">
+                            <div class="character-name">
+                                <input type="text" id="char-name" placeholder="Nome do Personagem">
+                            </div>
+                            <div class="equipped-weapon" id="equipped-weapon">
+                                <span>Arma: Nenhuma</span>
+                            </div>
+                        </div>
+                        <div class="action-buttons">
+                            <button id="save-btn">Salvar</button>
+                            <button id="docs-btn">Documentos</button>
+                            <button id="map-btn">Mapa</button>
+                            <button id="dice-btn">Dados</button>
+                            <button id="audio-toggle" class="audio-btn">
+                                <span id="audio-icon">🔇</span>
+                            </button>
+                            <audio id="background-audio" loop>
+                                <source src="sounds/background.mp3" type="audio/mpeg">
+                            </audio>
+                            <button id="reset-btn" class="danger-btn">Resetar Jogo</button>
+                        </div>
+                    </div>
+                </header>
+
+                <div id="confirm-reset-modal" class="modal">
+                    <div class="confirm-reset-content">
+                        <h3>Confirmar Reset</h3>
+                        <p>Tem certeza que deseja resetar o jogo? Todos os dados serão perdidos.</p>
+                        <div class="confirm-reset-buttons">
+                            <button id="confirm-reset">Sim, Resetar</button>
+                            <button id="cancel-reset">Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal do Mapa -->
+                <div id="map-modal" class="modal">
+                    <div class="modal-content">
+                        <span class="close-btn">&times;</span>
+                        <div class="map-controls">
+                            <button id="prev-map">Anterior</button>
+                            <span id="map-title">Mapa 1F</span>
+                            <button id="next-map">Próximo</button>
+                        </div>
+                        <div class="map-container">
+                            <img id="map-image" src="" alt="Mapa da Mansão">
+                            <div id="map-error"
+                                style="display: none; color: #f44336; text-align: center; padding: 20px;">
+                                Mapa não encontrado na pasta imgs/maps/
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="docs-modal" class="modal">
+                    <div class="modal-content docs-content">
+                        <span class="close-btn">&times;</span>
+                        <h3>Documentos e Anotações</h3>
+                        <textarea id="notes-textarea"
+                            placeholder="Anote aqui todas as pistas encontradas..."></textarea>
+                        <div class="docs-controls">
+                            <button id="save-notes">Salvar</button>
+                            <span id="docs-status">Pronto</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="inventory-body">
+                    <div class="left-panel">
+                        <div class="service-box">
+                            <h3>Vida do Personagem</h3>
+                            <div class="health-bar">
+                                <label>Vida: </label>
+                                <div class="health-controls">
+                                    <progress id="health" class="health-green" value="100" max="100"></progress>
+
+                                </div>
+                                <span id="health-value">100/100</span>
+                            </div>
+                            <div class="selected-item" id="selected-item-display">
+                                Item selecionado: Nenhum
+                            </div>
+                        </div>
+
+                        <div class="source-box">
+                            <h3>Descrição do Item</h3>
+                            <div class="item-description" id="item-description">
+                                Descrição do item aparecerá aqui
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="right-panel">
+                        <div class="attributes-box">
+                            <h3>Atributos</h3>
+                            <div class="attributes-grid">
+                                <div class="attribute">
+                                    <label>Força:</label>
+                                    <input type="number" id="strength" min="1" max="20" value="10">
+                                </div>
+                                <div class="attribute">
+                                    <label>Destreza:</label>
+                                    <input type="number" id="dexterity" min="1" max="20" value="10">
+                                </div>
+                                <div class="attribute">
+                                    <label>Constituição:</label>
+                                    <input type="number" id="constitution" min="1" max="20" value="10">
+                                </div>
+                                <div class="attribute">
+                                    <label>Inteligência:</label>
+                                    <input type="number" id="intelligence" min="1" max="20" value="10">
+                                </div>
+                                <div class="attribute">
+                                    <label>Percepção:</label>
+                                    <input type="number" id="perception" min="1" max="20" value="10">
+                                </div>
+                            </div>
+                            <div class="calculated-stats">
+                                <h4>Status Calculados</h4>
+                                <div class="stats-grid">
+                                    <div class="stat">
+                                        <label>Vida:</label>
+                                        <span id="life-total">20</span>
+                                    </div>
+                                    <div class="stat">
+                                        <label>Sanidade:</label>
+                                        <span id="sanity-total">100</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="inventory-grid" id="inventory-grid">
+                            <!-- Itens serão adicionados dinamicamente -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- rolagem de dados-->
+            <div id="dice-modal" class="modal">
+                <div class="modal-content dice-content">
+                    <span class="close-btn">&times;</span>
+                    <h3>Rolagem de Dados</h3>
+                    <div class="dice-buttons">
+                        <button class="dice-btn" data-sides="20">d20</button>
+                        <button class="dice-btn" data-sides="12">d12</button>
+                        <button class="dice-btn" data-sides="10">d10</button>
+                        <button class="dice-btn" data-sides="8">d8</button>
+                        <button class="dice-btn" data-sides="6">d6</button>
+                        <button class="dice-btn" data-sides="4">d4</button>
+                    </div>
+                    <div class="dice-results">
+                        <div id="dice-roll-animation"></div>
+                        <div id="dice-result">Clique em um dado para rolar</div>
+                        <div id="dice-history"></div>
+                    </div>
+                </div>
+            </div>
+
+            <script src="script.js"></script>
+            <footer class="footer">
+                <div class="footer-content">
+                    <div class="footer-title">Sistema de Inventário Resident Evil RPG</div>
+                    <div class="footer-subtitle">Uma ferramenta para mestres obsessivos por organização</div>
+                    
+                    <div class="footer-signature">
+                        Criado por João Piel Neto<br>
+                        Mestre de RPG | Fã de Resident Evil | Desenvolvedor
+                    </div>
+                    
+                    <div class="footer-umbrella">☣</div>
+                </div>
+            </footer>
+</body>
+
+</html>
