@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resident Evil RPG - Ficha de Personagem</title>
+    <link rel="icon" href="imgs/icon.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header-title">
+            <h1>INVENTÁRIO RESIDENT EVIL</h1>
+            <p id="campaign-name-display">Carregando...</p>
+        </div>
+
+        <header class="inventory-header">
+            <div class="character-info">
+                <div id="character-image" class="character-image"></div>
+                <input type="file" id="image-upload" accept="image/*" style="display: none;">
+
+                <div class="character-meta">
+                    <div class="character-name">
+                        <input type="text" id="char-name" placeholder="Nome do Personagem">
+                    </div>
+                    <div class="equipped-weapon" id="equipped-weapon">
+                        <span>Arma: Nenhuma</span>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="docs-btn">Documentos</button>
+                    <button id="map-btn">Mapa</button>
+                    <button id="dice-btn">Dados</button>
+                    <button id="audio-toggle" class="audio-btn">
+                        <span id="audio-icon">🔇</span>
+                    </button>
+                    <audio id="background-audio" loop></audio>
+                </div>
+            </div>
+        </header>
+
+        <div class="inventory-body">
+            <div class="left-panel">
+                <div class="service-box">
+                    <h3>Vida do Personagem</h3>
+                    <div class="health-controls">
+                        <button class="health-btn" id="decrease-health-btn">-</button>
+                        <div class="health-bar"><progress id="health" value="100" max="100"></progress></div>
+                        <button class="health-btn" id="increase-health-btn">+</button>
+                    </div>
+                    <div id="health-value" style="text-align: center; margin-bottom: 1rem;">100/100</div>
+                </div>
+                <div class="service-box">
+                    <h3>Item Selecionado</h3>
+                    <div id="selected-item-display" class="selected-item-display">Nenhum</div>
+                </div>
+                <div class="source-box">
+                    <h3>Descrição do Item</h3>
+                    <div class="item-description" id="item-description">
+                        Clique em um item para ver a descrição.
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="attributes-box">
+                    <h3>Atributos</h3>
+                    <div class="attributes-grid">
+                        <div class="attribute"><label>Força:</label><input type="number" id="strength" value="10"></div>
+                        <div class="attribute"><label>Destreza:</label><input type="number" id="dexterity" value="10">
+                        </div>
+                        <div class="attribute"><label>Constituição:</label><input type="number" id="constitution"
+                                value="10"></div>
+                        <div class="attribute"><label>Inteligência:</label><input type="number" id="intelligence"
+                                value="10"></div>
+                        <div class="attribute"><label>Percepção:</label><input type="number" id="perception" value="10">
+                        </div>
+                    </div>
+                    <h4>Status Calculados</h4>
+                    <div class="stats-grid">
+                        <div class="stat"><label>Vida Total:</label><span id="life-total">20</span></div>
+                        <div class="stat"><label>Sanidade:</label><span id="sanity-total">100</span></div>
+                    </div>
+                </div>
+                <div class="inventory-grid" id="inventory-grid"></div>
+            </div>
+        </div>
+
+        <div id="player-chat-container" class="player-chat-container">
+            <div class="chat-header">
+                <h3>Chat da Campanha</h3>
+                <button id="toggle-chat-btn" title="Minimizar/Maximizar">_</button>
+            </div>
+            <div id="chat-messages" class="chat-messages">
+            </div>
+            <div class="chat-input">
+                <input type="text" id="chat-input-field" placeholder="Digite sua mensagem...">
+                <button id="send-chat-btn">Enviar</button>
+            </div>
+        </div>
+
+        <footer class="footer"
+            style="text-align:center; padding: 1rem; border-top: 1px solid var(--primary-dark); margin-top: 1rem;">
+            <p>Sistema desenvolvido por João Piel Neto</p>
+            <button id="backToCampaigns"
+                style="background:none; border: 1px solid var(--primary); color:var(--primary); padding: 0.5rem 1rem; cursor:pointer; margin-top:0.5rem;">Voltar
+                para Campanhas</button>
+        </footer>
+    </div>
+
+    <div id="map-modal" class="modal">
+        <div class="modal-content"><span class="close-btn">&times;</span>
+            <div class="map-controls"><button id="prev-map">Anterior</button><span id="map-title">Mapa</span><button
+                    id="next-map">Próximo</button></div>
+            <div class="map-container"><img id="map-image" src="" alt="Mapa"></div>
+        </div>
+    </div>
+    <div id="docs-modal" class="modal">
+        <div class="modal-content docs-content"><span class="close-btn">&times;</span>
+            <h3>Documentos e Anotações</h3><textarea id="notes-textarea"></textarea>
+            <div class="docs-controls"><button id="save-notes">Salvar Notas</button></div>
+        </div>
+    </div>
+    <div id="dice-modal" class="modal">
+        <div class="modal-content dice-modal-content"><span class="close-btn">&times;</span>
+            <h3>Rolagem de Dados</h3>
+            <div class="dice-buttons"><button class="dice-btn" data-sides="20">d20</button><button class="dice-btn"
+                    data-sides="12">d12</button><button class="dice-btn" data-sides="10">d10</button><button
+                    class="dice-btn" data-sides="8">d8</button><button class="dice-btn"
+                    data-sides="6">d6</button><button class="dice-btn" data-sides="4">d4</button></div>
+            <div id="dice-result" class="dice-result"></div>
+            <div id="dice-history"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- CONFIGURAÇÃO FIREBASE ---
+            const firebaseConfig = {
+                apiKey: "AIzaSyAKUKEyV3iS8QCQpdjtHhDdbiySy2e9RZY",
+                authDomain: "rpgterror-90630.firebaseapp.com",
+                projectId: "rpgterror-90630",
+                storageBucket: "rpgterror-90630.appspot.com",
+                messagingSenderId: "569459851763",
+                appId: "1:569459851763:web:302afb88d253d14ab25286"
+            };
+            firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+            const db = firebase.firestore();
+
+            // --- REFERÊNCIAS DO DOM ---
+            const elements = {
+                // ... (todos os seus elementos anteriores)
+                campaignNameDisplay: document.getElementById('campaign-name-display'),
+                characterImage: document.getElementById('character-image'),
+                imageUpload: document.getElementById('image-upload'),
+                charNameInput: document.getElementById('char-name'),
+                equippedWeapon: document.getElementById('equipped-weapon'),
+                healthBar: document.getElementById('health'),
+                healthValue: document.getElementById('health-value'),
+                increaseHealthBtn: document.getElementById('increase-health-btn'),
+                decreaseHealthBtn: document.getElementById('decrease-health-btn'),
+                selectedItemDisplay: document.getElementById('selected-item-display'),
+                itemDescription: document.getElementById('item-description'),
+                inventoryGrid: document.getElementById('inventory-grid'),
+                strengthInput: document.getElementById('strength'),
+                dexterityInput: document.getElementById('dexterity'),
+                constitutionInput: document.getElementById('constitution'),
+                intelligenceInput: document.getElementById('intelligence'),
+                perceptionInput: document.getElementById('perception'),
+                lifeTotalSpan: document.getElementById('life-total'),
+                sanityTotalSpan: document.getElementById('sanity-total'),
+                notesTextarea: document.getElementById('notes-textarea'),
+                docsBtn: document.getElementById('docs-btn'),
+                mapBtn: document.getElementById('map-btn'),
+                diceBtn: document.getElementById('dice-btn'),
+                audioToggle: document.getElementById('audio-toggle'),
+                audioIcon: document.getElementById('audio-icon'),
+                backgroundAudio: document.getElementById('background-audio'),
+                docsModal: document.getElementById('docs-modal'),
+                mapModal: document.getElementById('map-modal'),
+                diceModal: document.getElementById('dice-modal'),
+                mapTitle: document.getElementById('map-title'),
+                mapImage: document.getElementById('map-image'),
+                prevMapBtn: document.getElementById('prev-map'),
+                nextMapBtn: document.getElementById('next-map'),
+                saveNotesBtn: document.getElementById('save-notes'),
+                diceResultDiv: document.getElementById('dice-result'),
+                backToCampaignsBtn: document.getElementById('backToCampaigns'),
+                // Elementos do Chat
+                chatContainer: document.getElementById('player-chat-container'),
+                chatHeader: document.querySelector('.chat-header'),
+                chatMessages: document.getElementById('chat-messages'),
+                chatInputField: document.getElementById('chat-input-field'),
+                sendChatBtn: document.getElementById('send-chat-btn'),
+                toggleChatBtn: document.getElementById('toggle-chat-btn')
+            };
+
+            // --- ESTADO DA APLICAÇÃO ---
+            let campaignId, userId, playerDocRef, campaignDocRef;
+            let unsubscribePlayer, unsubscribeEvents;
+            let localInventory = Array(8).fill(null);
+            let currentMapIndex = 0;
+            let masterId = null; // Guardará o ID do mestre
+
+            // ... (resto do seu código de definições e inicialização)
+            const mansionMaps = [
+                { name: "1º Andar", path: "https://static.wikia.nocookie.net/residentevil/images/5/58/Resident_Evil_Remake_Map_Mansion_1F.jpg" },
+                { name: "2º Andar", path: "https://static.wikia.nocookie.net/residentevil/images/f/f6/Resident_Evil_Remake_Map_Mansion_2F.jpg" },
+                { name: "Sótão", path: "https://static.wikia.nocookie.net/residentevil/images/c/c5/Resident_Evil_Remake_Map_Mansion_3F.jpg" },
+                { name: "Porão", path: "https://static.wikia.nocookie.net/residentevil/images/f/fe/Resident_Evil_Remake_Map_Mansion_B1.jpg" }
+            ];
+            elements.backgroundAudio.src = 'https://github.com/soundeffects/soundeffects.github.io/raw/master/sounds/RE1-save-room.mp3';
+            elements.backgroundAudio.volume = 0.3;
+
+            // --- INICIALIZAÇÃO E AUTENTICAÇÃO ---
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    userId = user.uid;
+                    const urlParams = new URLSearchParams(window.location.search);
+                    campaignId = urlParams.get('campaign');
+                    if (!campaignId) {
+                        window.location.href = 'campaign.html';
+                        return;
+                    }
+                    campaignDocRef = db.collection('campaigns').doc(campaignId);
+                    playerDocRef = campaignDocRef.collection('players').doc(userId);
+                    initializePlayer();
+                } else {
+                    window.location.href = 'index.html';
+                }
+            });
+
+            async function initializePlayer() {
+                const campaignDoc = await campaignDocRef.get();
+                if (campaignDoc.exists) {
+                    const campaignData = campaignDoc.data();
+                    elements.campaignNameDisplay.textContent = `Campanha: ${campaignData.name}`;
+                    masterId = campaignData.masterId; // Guarda o ID do mestre
+                }
+
+                const playerDoc = await playerDocRef.get();
+                if (!playerDoc.exists) {
+                    const user = auth.currentUser;
+                    const initialData = {
+                        name: user.displayName || "Sobrevivente",
+                        health: 100, maxHealth: 100,
+                        strength: 10, dexterity: 10, constitution: 10, intelligence: 10, perception: 10,
+                        notes: "", inventory: Array(8).fill(null), characterImage: ""
+                    };
+                    await playerDocRef.set(initialData);
+                }
+                attachListeners();
+            }
+
+            // --- LISTENERS DE DADOS EM TEMPO REAL ---
+            function attachListeners() {
+                if (unsubscribePlayer) unsubscribePlayer();
+                unsubscribePlayer = playerDocRef.onSnapshot((doc) => {
+                    if (doc.exists) updateUI(doc.data());
+                });
+
+                if (unsubscribeEvents) unsubscribeEvents();
+                // Listener agora busca os últimos 50 eventos para preencher o chat
+                unsubscribeEvents = campaignDocRef.collection('events')
+                    .orderBy('timestamp', 'desc')
+                    .limit(50)
+                    .onSnapshot((snapshot) => {
+                        elements.chatMessages.innerHTML = ''; // Limpa o chat
+                        const events = [];
+                        snapshot.forEach(doc => events.push(doc.data()));
+
+                        // Exibe na ordem correta (mais antigo primeiro)
+                        events.reverse().forEach(event => {
+                            if (event.type === 'item_received' && event.recipientId === userId) {
+                                // A lógica de receber item já é tratada pelo listener do jogador,
+                                // mas poderíamos mostrar uma notificação no chat aqui se quiséssemos.
+                            } else if (event.type === 'chat') {
+                                displayChatMessage(event);
+                            }
+                        });
+                    });
+            }
+
+            // --- LÓGICA DO CHAT ---
+            function displayChatMessage(message) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'chat-message';
+
+                const senderSpan = document.createElement('span');
+                senderSpan.className = 'message-sender';
+                senderSpan.textContent = message.senderName;
+
+                if (message.senderId === userId) {
+                    messageDiv.classList.add('own-message');
+                } else if (message.senderId === masterId) {
+                    senderSpan.classList.add('master'); // Estilo especial para o mestre
+                }
+
+                const textP = document.createElement('p');
+                textP.className = 'message-text';
+                textP.textContent = message.text;
+
+                messageDiv.appendChild(senderSpan);
+                messageDiv.appendChild(textP);
+                elements.chatMessages.appendChild(messageDiv);
+
+                // Rola para a mensagem mais recente
+                elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+            }
+
+            function sendChatMessage() {
+                const messageText = elements.chatInputField.value.trim();
+                if (!messageText) return;
+
+                const message = {
+                    senderId: userId,
+                    senderName: elements.charNameInput.value || auth.currentUser.displayName,
+                    text: messageText,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    type: 'chat'
+                };
+
+                campaignDocRef.collection('events').add(message);
+                elements.chatInputField.value = '';
+            }
+
+            elements.sendChatBtn.addEventListener('click', sendChatMessage);
+            elements.chatInputField.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendChatMessage();
+                }
+            });
+
+            elements.toggleChatBtn.addEventListener('click', () => {
+                elements.chatContainer.classList.toggle('collapsed');
+            });
+            elements.chatHeader.addEventListener('click', (e) => {
+                if (e.target.id !== 'toggle-chat-btn') {
+                    elements.chatContainer.classList.toggle('collapsed');
+                }
+            });
+
+            // --- O RESTANTE DO SEU CÓDIGO JS VEM AQUI ---
+            // (Lógica de UI, SaveData, Inventário, etc., permanece a mesma)
+            // ...
+            // --- LÓGICA DE ATUALIZAÇÃO DA UI ---
+            function updateUI(data) {
+                elements.charNameInput.value = data.name || '';
+                elements.strengthInput.value = data.strength || 10;
+                elements.dexterityInput.value = data.dexterity || 10;
+                elements.constitutionInput.value = data.constitution || 10;
+                elements.intelligenceInput.value = data.intelligence || 10;
+                elements.perceptionInput.value = data.perception || 10;
+                elements.notesTextarea.value = data.notes || '';
+                elements.characterImage.innerHTML = data.characterImage ? `<img src="${data.characterImage}" alt="Personagem">` : '';
+
+                updateCalculatedStats(data);
+
+                localInventory = data.inventory && data.inventory.length === 8 ? data.inventory : Array(8).fill(null);
+                renderInventory();
+            }
+
+            function updateCalculatedStats(data) {
+                const strength = parseInt(elements.strengthInput.value);
+                const dexterity = parseInt(elements.dexterityInput.value);
+                const constitution = parseInt(elements.constitutionInput.value);
+                const intelligence = parseInt(elements.intelligenceInput.value);
+
+                const lifeTotal = Math.floor((constitution + strength) / 2);
+                elements.lifeTotalSpan.textContent = lifeTotal;
+                elements.sanityTotalSpan.textContent = intelligence * dexterity;
+
+                elements.healthBar.max = lifeTotal;
+                const currentHealth = data ? data.health : parseInt(elements.healthBar.value);
+                elements.healthBar.value = Math.min(currentHealth, lifeTotal);
+                elements.healthValue.textContent = `${elements.healthBar.value}/${lifeTotal}`;
+                updateHealthBarColor();
+            }
+
+            function updateHealthBarColor() {
+                const percent = (elements.healthBar.value / elements.healthBar.max) * 100;
+                const bar = elements.healthBar;
+                bar.className = 'health-bar';
+                if (percent > 60) bar.classList.add('health-green');
+                else if (percent > 30) bar.classList.add('health-yellow');
+                else if (percent > 15) bar.classList.add('health-orange');
+                else bar.classList.add('health-red');
+            }
+
+            // --- LÓGICA DE DADOS E SALVAMENTO NO FIRESTORE ---
+            function saveData() {
+                if (!playerDocRef) return;
+                const dataToSave = {
+                    name: elements.charNameInput.value,
+                    health: parseInt(elements.healthBar.value), maxHealth: parseInt(elements.healthBar.max),
+                    strength: parseInt(elements.strengthInput.value), dexterity: parseInt(elements.dexterityInput.value),
+                    constitution: parseInt(elements.constitutionInput.value), intelligence: parseInt(elements.intelligenceInput.value),
+                    perception: parseInt(elements.perceptionInput.value),
+                    notes: elements.notesTextarea.value,
+                    inventory: localInventory,
+                    characterImage: elements.characterImage.querySelector('img')?.src || ''
+                };
+                playerDocRef.update(dataToSave).catch(error => console.error("Erro ao salvar dados: ", error));
+            }
+
+            // --- LÓGICA DO INVENTÁRIO ---
+            function renderInventory() {
+                elements.inventoryGrid.innerHTML = '';
+                for (let i = 0; i < 8; i++) {
+                    const item = localInventory[i];
+                    const slot = document.createElement('div');
+                    slot.className = 'inventory-slot';
+                    if (item) {
+                        slot.style.backgroundImage = `url('${item.image || 'https://i.imgur.com/qK4EeEa.png'}')`;
+                        if (item.showQuantity) {
+                            slot.innerHTML = `<div class="item-quantity">${item.quantity}</div>`;
+                        }
+                    }
+                    slot.addEventListener('click', () => handleSlotClick(i));
+                    elements.inventoryGrid.appendChild(slot);
+                }
+            }
+
+            function handleSlotClick(index) {
+                if (localInventory[index]) {
+                    selectItem(index);
+                } else {
+                    const fileInput = document.createElement('input');
+                    fileInput.type = 'file';
+                    fileInput.accept = 'image/*';
+                    fileInput.onchange = e => {
+                        if (!e.target.files[0]) return;
+                        const reader = new FileReader();
+                        reader.onload = event => {
+                            const itemData = parseFileName(e.target.files[0].name);
+                            itemData.image = event.target.result;
+                            localInventory[index] = itemData;
+                            saveData();
+                        };
+                        reader.readAsDataURL(e.target.files[0]);
+                    };
+                    fileInput.click();
+                }
+            }
+
+            function selectItem(index) {
+                document.querySelectorAll('.inventory-slot.selected').forEach(s => s.classList.remove('selected'));
+                elements.inventoryGrid.children[index].classList.add('selected');
+
+                const item = localInventory[index];
+                elements.selectedItemDisplay.textContent = item.name;
+                elements.itemDescription.innerHTML = `<p>${item.description}</p><p><strong>Tipo:</strong> ${item.type}</p>`;
+                if (item.type === 'weapon') elements.equippedWeapon.innerHTML = `Arma: ${item.name}`;
+            }
+
+            function parseFileName(filename) {
+                const baseName = filename.replace(/\.[^/.]+$/, "");
+                const parts = baseName.split(' - ');
+                return { name: parts[0] || "Item", description: parts[1] || "Sem descrição", type: parts[2] || "misc", quantity: parseInt(parts[3]) || 1, showQuantity: ["weapon", "ammo", "healing"].includes(parts[2]), image: '' };
+            }
+
+            function handleItemReceived(item) {
+                const emptySlotIndex = localInventory.findIndex(slot => slot === null);
+                if (emptySlotIndex !== -1) {
+                    alert(`Você recebeu o item: ${item.name}!`);
+                    campaignDocRef.collection('items').doc(item.id).get().then(doc => {
+                        if (doc.exists) {
+                            localInventory[emptySlotIndex] = { ...doc.data(), ...item };
+                            saveData();
+                        }
+                    });
+                } else {
+                    alert(`Você recebeu ${item.name}, mas seu inventário está cheio!`);
+                }
+            }
+
+            // --- EVENT LISTENERS PARA AÇÕES DO JOGADOR ---
+            [elements.charNameInput, elements.strengthInput, elements.dexterityInput, elements.constitutionInput, elements.intelligenceInput, elements.perceptionInput].forEach(input => {
+                input.addEventListener('change', () => {
+                    updateCalculatedStats();
+                    saveData();
+                });
+            });
+
+            elements.increaseHealthBtn.addEventListener('click', () => adjustHealth(1));
+            elements.decreaseHealthBtn.addEventListener('click', () => adjustHealth(-1));
+            function adjustHealth(amount) {
+                let newHealth = parseInt(elements.healthBar.value) + amount;
+                newHealth = Math.max(0, Math.min(newHealth, elements.healthBar.max));
+                elements.healthBar.value = newHealth;
+                updateCalculatedStats();
+                saveData();
+            }
+
+            elements.characterImage.addEventListener('click', () => elements.imageUpload.click());
+            elements.imageUpload.addEventListener('change', e => {
+                if (e.target.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = event => {
+                        elements.characterImage.innerHTML = `<img src="${event.target.result}" alt="Personagem">`;
+                        saveData();
+                    };
+                    reader.readAsDataURL(e.target.files[0]);
+                }
+            });
+
+            // --- LÓGICA DOS MODAIS E OUTROS ---
+            elements.docsBtn.addEventListener('click', () => { elements.docsModal.style.display = 'block'; });
+            elements.saveNotesBtn.addEventListener('click', saveData);
+            elements.mapBtn.addEventListener('click', () => { loadMap(currentMapIndex); elements.mapModal.style.display = 'block'; });
+            elements.diceBtn.addEventListener('click', () => { elements.diceModal.style.display = 'block'; });
+            elements.audioToggle.addEventListener('click', toggleAudio);
+
+            function toggleAudio() {
+                if (elements.backgroundAudio.paused) {
+                    elements.backgroundAudio.play().catch(e => console.log("Playback falhou", e));
+                    elements.audioIcon.textContent = '🔊';
+                } else {
+                    elements.backgroundAudio.pause();
+                    elements.audioIcon.textContent = '🔇';
+                }
+            }
+
+            function loadMap(index) {
+                const map = mansionMaps[index];
+                elements.mapImage.src = map.path;
+                elements.mapTitle.textContent = `Mansão - ${map.name}`;
+                elements.prevMapBtn.disabled = index === 0;
+                elements.nextMapBtn.disabled = index === mansionMaps.length - 1;
+            }
+            elements.prevMapBtn.addEventListener('click', () => { if (currentMapIndex > 0) { currentMapIndex--; loadMap(currentMapIndex); } });
+            elements.nextMapBtn.addEventListener('click', () => { if (currentMapIndex < mansionMaps.length - 1) { currentMapIndex++; loadMap(currentMapIndex); } });
+
+            document.querySelectorAll('.dice-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const sides = parseInt(btn.dataset.sides);
+                    const result = Math.floor(Math.random() * sides) + 1;
+                    elements.diceResultDiv.textContent = `Resultado d${sides}: ${result}`;
+                });
+            });
+
+            document.querySelectorAll('.close-btn').forEach(btn => {
+                btn.onclick = () => {
+                    btn.closest('.modal').style.display = 'none';
+                    if (btn.closest('.modal').id === 'docs-modal') saveData();
+                }
+            });
+            window.onclick = (e) => {
+                if (e.target.classList.contains('modal')) {
+                    e.target.style.display = 'none';
+                    if (e.target.id === 'docs-modal') saveData();
+                }
+            }
+
+            elements.backToCampaignsBtn.addEventListener('click', () => { window.location.href = 'campaign.html'; });
+        });
+    </script>
+</body>
+
+</html>
+</body>
+
+</html>

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Resident Evil RPG</title>
+    <link rel="icon" href="imgs/icon.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+
+    <style>
+        /* --- CÓDIGO ADICIONADO PARA REMOVER A BORDA BRANCA --- */
+        html, body {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        /* --- FIM DO CÓDIGO ADICIONADO --- */
+
+        /* Estilos base do tema Resident Evil (do login.css) */
+        .login-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: 
+                radial-gradient(circle at center, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.95) 100%),
+                url('https://i.imgur.com/3Yd2LVd.jpeg') center/cover fixed no-repeat;
+            color: #e0e0e0;
+            padding: 2rem;
+            font-family: 'IM Fell English SC', serif;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        .login-header h1 {
+            color: #c0a050;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px #000, 0 0 10px rgba(192, 160, 80, 0.3);
+            letter-spacing: 3px;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-header p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.1rem;
+        }
+
+        .login-box {
+            background-color: rgba(30, 30, 30, 0.9);
+            border: 1px solid #c0a050;
+            border-radius: 4px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8), 0 0 40px rgba(192, 160, 80, 0.1);
+            position: relative;
+            overflow: hidden;
+            animation: slideUp 0.8s ease-in-out;
+        }
+
+        .login-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #c0a050, transparent);
+        }
+
+        .umbrella-logo {
+            font-size: 3rem;
+            text-align: center;
+            color: #c0a050;
+            margin-bottom: 1rem;
+            animation: pulse 2s infinite;
+        }
+
+        .login-form h2, .register-form h2 {
+            color: #c0a050;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-weight: normal;
+            font-size: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.8rem;
+            background-color: rgba(51, 51, 51, 0.8);
+            border: 1px solid rgba(85, 85, 85, 0.5);
+            color: white;
+            border-radius: 4px;
+            font-family: 'IM Fell English SC', serif;
+            box-sizing: border-box; /* Adicionado para consistência */
+        }
+
+        .form-btn {
+            width: 100%;
+            padding: 0.8rem;
+            background-color: #c0a050;
+            color: black;
+            border: none;
+            border-radius: 4px;
+            font-family: 'IM Fell English SC', serif;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        .form-btn:hover {
+            background-color: #d4b468;
+        }
+        
+        .google-login-btn {
+            width: 100%;
+            padding: 0.8rem;
+            background-color: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-family: 'IM Fell English SC', serif;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .google-login-btn:hover {
+            background-color: #357ABD;
+        }
+
+        .google-login-btn img {
+            width: 20px;
+            height: 20px;
+        }
+
+        .login-divider {
+            display: flex;
+            align-items: center;
+            margin: 1.5rem 0;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .login-divider::before,
+        .login-divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid rgba(192, 160, 80, 0.3);
+        }
+
+        .login-divider span {
+            padding: 0 10px;
+        }
+
+        .toggle-link {
+            color: #c0a050;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: block;
+            margin-top: 1rem;
+        }
+
+        .toggle-link:hover {
+            color: #e0c070;
+            text-decoration: underline;
+        }
+
+        .login-footer {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .hidden {
+            display: none;
+        }
+
+        /* Animações */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { 
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to { 
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>RESIDENT EVIL RPG</h1>
+            <p>Acesse sua campanha de terror</p>
+        </div>
+
+        <div class="login-box">
+            <div class="umbrella-logo">☣</div>
+            
+            <div id="loginForm" class="login-form">
+                <h2>Entrar na Mansão</h2>
+                <div class="form-group">
+                    <input type="email" id="loginEmail" class="form-input" placeholder="Seu email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="loginPassword" class="form-input" placeholder="Sua senha" required>
+                </div>
+                <button id="loginBtn" class="form-btn">Entrar</button>
+                <a href="#" id="showRegisterLink" class="toggle-link">Não tem uma conta? Registre-se</a>
+            </div>
+            
+            <div id="registerForm" class="register-form hidden">
+                <h2>Registrar Sobrevivente</h2>
+                <div class="form-group">
+                    <input type="email" id="registerEmail" class="form-input" placeholder="Seu email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="registerPassword" class="form-input" placeholder="Crie uma senha (mín. 6 caracteres)" required>
+                </div>
+                <button id="registerBtn" class="form-btn">Registrar</button>
+                <a href="#" id="showLoginLink" class="toggle-link">Já tem uma conta? Entre</a>
+            </div>
+            
+            <div class="login-divider">
+                <span>ou</span>
+            </div>
+            
+            <button id="googleLoginBtn" class="google-login-btn">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google Logo">
+                Continuar com Google
+            </button>
+        </div>
+        
+        <div class="login-footer">
+            <p>Sistema desenvolvido por João Piel Neto</p>
+            <p>© 2023 - Todos os direitos reservados</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Configuração do Firebase
+            const firebaseConfig = {
+                apiKey: "AIzaSyAKUKEyV3iS8QCQpdjtHhDdbiySy2e9RZY",
+                authDomain: "rpgterror-90630.firebaseapp.com",
+                projectId: "rpgterror-90630",
+                storageBucket: "rpgterror-90630.appspot.com",
+                messagingSenderId: "569459851763",
+                appId: "1:569459851763:web:302afb88d253d14ab25286"
+            };
+
+            // Inicializa o Firebase
+            firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+            const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+            // Elementos do DOM
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const showRegisterLink = document.getElementById('showRegisterLink');
+            const showLoginLink = document.getElementById('showLoginLink');
+            
+            const loginBtn = document.getElementById('loginBtn');
+            const registerBtn = document.getElementById('registerBtn');
+            const googleLoginBtn = document.getElementById('googleLoginBtn');
+
+            // --- FUNÇÕES PARA ALTERNAR FORMULÁRIOS ---
+            showRegisterLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+            });
+
+            showLoginLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                registerForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+            });
+
+            // --- LÓGICA DE AUTENTICAÇÃO ---
+
+            // 1. Registro com Email e Senha
+            registerBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const email = document.getElementById('registerEmail').value;
+                const password = document.getElementById('registerPassword').value;
+
+                if (!email || !password) {
+                    alert('Por favor, preencha todos os campos.');
+                    return;
+                }
+
+                auth.createUserWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        console.log('Usuário registrado:', userCredential.user);
+                        window.location.href = 'campaign.html';
+                    })
+                    .catch((error) => {
+                        console.error('Erro no registro:', error);
+                        alert(`Erro no registro: ${error.message}`);
+                    });
+            });
+
+            // 2. Login com Email e Senha
+            loginBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+
+                if (!email || !password) {
+                    alert('Por favor, preencha todos os campos.');
+                    return;
+                }
+
+                auth.signInWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        console.log('Usuário logado:', userCredential.user);
+                        window.location.href = 'campaign.html';
+                    })
+                    .catch((error) => {
+                        console.error('Erro no login:', error);
+                        alert(`Erro no login: ${error.message}`);
+                    });
+            });
+
+            // 3. Login com Google
+            googleLoginBtn.addEventListener('click', () => {
+                auth.signInWithPopup(googleProvider)
+                    .then((result) => {
+                        console.log('Usuário logado com Google:', result.user);
+                        window.location.href = 'campaign.html';
+                    })
+                    .catch((error) => {
+                        console.error('Erro no login com Google:', error);
+                        alert(`Erro no login com Google: ${error.message}`);
+                    });
+            });
+
+            // Monitora o estado de autenticação para redirecionar se já estiver logado
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    // Este trecho agora está comentado para evitar redirecionamentos indesejados
+                    // durante o desenvolvimento. A lógica de redirecionamento está no final
+                    // de cada função de login bem-sucedido.
+                    // if (!window.location.pathname.includes('campaign.html')) {
+                    //    window.location.href = 'campaign.html';
+                    // }
+                } else {
+                    console.log('Usuário não autenticado.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
