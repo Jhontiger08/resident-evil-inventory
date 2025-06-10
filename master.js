@@ -116,7 +116,8 @@ document.addEventListener('DOMContentLoaded', function () {
             p.addEventListener('click', () => openPlayerActionModal(player));
             ui.playerList.appendChild(p);
         });
-        ui.playerCount.textContent = `(${appState.players.length}/${appState.campaignMaxPlayers || 'N/A'})`;
+        const actualPlayers = appState.players.filter(p => p.type !== 'npc');
+ui.playerCount.textContent = `(${actualPlayers.length}/${appState.campaignMaxPlayers || 'N/A'})`;
     };
     
     const renderGenericList = (list, container, renderFunc) => {

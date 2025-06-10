@@ -13,6 +13,64 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        /* ESTILOS ADICIONADOS E CORRIGIDOS */
+        .re-btn {
+            padding: 0.6rem 1.2rem;
+            background-color: rgba(74, 74, 74, 0.8);
+            color: #e0e0e0;
+            border: 1px solid rgba(192, 160, 80, 0.4);
+            border-radius: 4px;
+            font-family: 'IM Fell English SC', serif;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .re-btn:hover {
+            background-color: #c0a050;
+            color: black;
+            border-color: #c0a050;
+        }
+
+        .chat-input .re-btn {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+
+        .modal .re-btn {
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .dice-buttons .re-btn {
+            margin: 0.2rem;
+        }
+
+        .map-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+        }
+
+        .map-container img {
+            max-width: 100%;
+            max-height: 70vh;
+            object-fit: contain;
+        }
+
+        #player-fog-of-war {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none; /* Permite clicar através do canvas na imagem se necessário */
+        }
+    </style>
 </head>
 
 <body>
@@ -37,10 +95,10 @@
                 </div>
 
                 <div class="action-buttons">
-                    <button id="docs-btn">Documentos</button>
-                    <button id="map-btn">Mapa</button>
-                    <button id="dice-btn">Dados</button>
-                    <button id="audio-toggle" class="audio-btn">
+                    <button id="docs-btn" class="re-btn">Documentos</button>
+                    <button id="map-btn" class="re-btn">Mapa</button>
+                    <button id="dice-btn" class="re-btn">Dados</button>
+                    <button id="audio-toggle" class="re-btn">
                         <span id="audio-icon">🔇</span>
                     </button>
                     <audio id="background-audio" loop></audio>
@@ -104,36 +162,46 @@
             </div>
             <div class="chat-input">
                 <input type="text" id="chat-input-field" placeholder="Digite sua mensagem...">
-                <button id="send-chat-btn">Enviar</button>
+                <button id="send-chat-btn" class="re-btn">Enviar</button>
             </div>
         </div>
 
         <footer class="footer"
             style="text-align:center; padding: 1rem; border-top: 1px solid var(--primary-dark); margin-top: 1rem;">
             <p>Sistema desenvolvido por João Piel Neto</p>
-            <button id="backToCampaigns"
-                style="background:none; border: 1px solid var(--primary); color:var(--primary); padding: 0.5rem 1rem; cursor:pointer; margin-top:0.5rem;">Voltar
-                para Campanhas</button>
+            <button id="backToCampaigns" class="re-btn">Voltar para Campanhas</button>
         </footer>
     </div>
 
-    <div class="map-container">
-        <img id="map-image" src="" alt="Mapa da campanha">
-        <canvas id="player-fog-of-war"></canvas>
+    <div id="map-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <div class="map-controls">
+                 <span id="map-title">Mapa</span>
+            </div>
+            <div class="map-container">
+                <img id="map-image" src="" alt="Mapa da campanha">
+                <canvas id="player-fog-of-war"></canvas>
+            </div>
+        </div>
     </div>
     <div id="docs-modal" class="modal">
         <div class="modal-content docs-content"><span class="close-btn">&times;</span>
             <h3>Documentos e Anotações</h3><textarea id="notes-textarea"></textarea>
-            <div class="docs-controls"><button id="save-notes">Salvar Notas</button></div>
+            <div class="docs-controls"><button id="save-notes" class="re-btn">Salvar Notas</button></div>
         </div>
     </div>
     <div id="dice-modal" class="modal">
         <div class="modal-content dice-modal-content"><span class="close-btn">&times;</span>
             <h3>Rolagem de Dados</h3>
-            <div class="dice-buttons"><button class="dice-btn" data-sides="20">d20</button><button class="dice-btn"
-                    data-sides="12">d12</button><button class="dice-btn" data-sides="10">d10</button><button
-                    class="dice-btn" data-sides="8">d8</button><button class="dice-btn"
-                    data-sides="6">d6</button><button class="dice-btn" data-sides="4">d4</button></div>
+            <div class="dice-buttons">
+                <button class="dice-btn re-btn" data-sides="20">d20</button>
+                <button class="dice-btn re-btn" data-sides="12">d12</button>
+                <button class="dice-btn re-btn" data-sides="10">d10</button>
+                <button class="dice-btn re-btn" data-sides="8">d8</button>
+                <button class="dice-btn re-btn" data-sides="6">d6</button>
+                <button class="dice-btn re-btn" data-sides="4">d4</button>
+            </div>
             <div id="dice-result" class="dice-result"></div>
             <div id="dice-history"></div>
         </div>
@@ -156,7 +224,6 @@
 
             // --- REFERÊNCIAS DO DOM ---
             const elements = {
-                // ... (todos os seus elementos anteriores)
                 campaignNameDisplay: document.getElementById('campaign-name-display'),
                 characterImage: document.getElementById('character-image'),
                 imageUpload: document.getElementById('image-upload'),
@@ -179,7 +246,6 @@
                 notesTextarea: document.getElementById('notes-textarea'),
                 docsBtn: document.getElementById('docs-btn'),
                 mapBtn: document.getElementById('map-btn'),
-                playerFogOfWarCanvas: document.getElementById('player-fog-of-war'),
                 diceBtn: document.getElementById('dice-btn'),
                 audioToggle: document.getElementById('audio-toggle'),
                 audioIcon: document.getElementById('audio-icon'),
@@ -189,27 +255,25 @@
                 diceModal: document.getElementById('dice-modal'),
                 mapTitle: document.getElementById('map-title'),
                 mapImage: document.getElementById('map-image'),
-                prevMapBtn: document.getElementById('prev-map'),
-                nextMapBtn: document.getElementById('next-map'),
                 saveNotesBtn: document.getElementById('save-notes'),
                 diceResultDiv: document.getElementById('dice-result'),
                 backToCampaignsBtn: document.getElementById('backToCampaigns'),
-                // Elementos do Chat
                 chatContainer: document.getElementById('player-chat-container'),
                 chatHeader: document.querySelector('.chat-header'),
                 chatMessages: document.getElementById('chat-messages'),
                 chatInputField: document.getElementById('chat-input-field'),
                 sendChatBtn: document.getElementById('send-chat-btn'),
-                toggleChatBtn: document.getElementById('toggle-chat-btn')
+                toggleChatBtn: document.getElementById('toggle-chat-btn'),
+                playerFogOfWarCanvas: document.getElementById('player-fog-of-war'),
             };
 
             // --- ESTADO DA APLICAÇÃO ---
             let campaignId, userId, playerDocRef, campaignDocRef;
             let unsubscribePlayer, unsubscribeEvents;
             let localInventory = Array(8).fill(null);
-            let currentMapIndex = 0;
-            let masterId = null; // Guardará o ID do mestre
+            let masterId = null; 
             let mapState = { ctx: null, revealedAreas: [] };
+
 
             // --- INICIALIZAÇÃO E AUTENTICAÇÃO ---
             auth.onAuthStateChanged((user) => {
@@ -230,13 +294,6 @@
             });
 
             async function initializePlayer() {
-                const campaignDoc = await campaignDocRef.get();
-                if (campaignDoc.exists) {
-                    const campaignData = campaignDoc.data();
-                    elements.campaignNameDisplay.textContent = `Campanha: ${campaignData.name}`;
-                    masterId = campaignData.masterId; // Guarda o ID do mestre
-                }
-
                 const playerDoc = await playerDocRef.get();
                 if (!playerDoc.exists) {
                     const user = auth.currentUser;
@@ -251,43 +308,6 @@
                 attachListeners();
             }
 
-            function setupPlayerMap() {
-                const canvas = elements.playerFogOfWarCanvas;
-                const mapImage = elements.mapImage;
-                mapState.ctx = canvas.getContext('2d');
-
-                const resizeCanvas = () => {
-                    if (mapImage.naturalWidth > 0) {
-                        const aspectRatio = mapImage.naturalHeight / mapImage.naturalWidth;
-                        canvas.width = mapImage.clientWidth;
-                        canvas.height = mapImage.clientWidth * aspectRatio;
-                        drawPlayerFogOfWar();
-                    }
-                };
-
-                mapImage.onload = resizeCanvas;
-                window.addEventListener('resize', resizeCanvas);
-            }
-
-            // FUNÇÃO PARA DESENHAR O FOG OF WAR DO JOGADOR
-            function drawPlayerFogOfWar() {
-                if (!mapState.ctx) return;
-                const { ctx, revealedAreas } = mapState;
-                const canvas = elements.playerFogOfWarCanvas;
-
-                ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpa o canvas
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                if (revealedAreas && revealedAreas.length > 0) {
-                    ctx.globalCompositeOperation = 'destination-out';
-                    revealedAreas.forEach(area => {
-                        ctx.fillRect(area.x * canvas.width, area.y * canvas.height, area.w * canvas.width, area.h * canvas.height);
-                    });
-                    ctx.globalCompositeOperation = 'source-over';
-                }
-            }
-
             // --- LISTENERS DE DADOS EM TEMPO REAL ---
             function attachListeners() {
                 if (unsubscribePlayer) unsubscribePlayer();
@@ -296,65 +316,50 @@
                 });
 
                 if (unsubscribeEvents) unsubscribeEvents();
-                // Listener agora busca os últimos 50 eventos para preencher o chat
                 unsubscribeEvents = campaignDocRef.collection('events')
                     .orderBy('timestamp', 'desc')
                     .limit(50)
                     .onSnapshot((snapshot) => {
-                        elements.chatMessages.innerHTML = ''; // Limpa o chat
                         const events = [];
-                        snapshot.forEach(doc => events.push(doc.data()));
+                        snapshot.docChanges().forEach(change => {
+                            if (change.type === 'added') {
+                                events.push({id: change.doc.id, ...change.doc.data()});
+                            }
+                        });
 
-                        // Exibe na ordem correta (mais antigo primeiro)
                         events.reverse().forEach(event => {
-                            // SEÇÃO CORRIGIDA PARA RECEBER ITENS
-                            if (event.type === 'item_received' && event.recipientId === userId) {
-
-                                // Função para adicionar o item ao inventário do jogador
+                             if (event.type === 'item_received' && event.recipientId === userId) {
                                 const handleItemReceived = (itemData) => {
                                     const emptySlotIndex = localInventory.findIndex(slot => slot === null);
-
                                     if (emptySlotIndex !== -1) {
                                         alert(`Você recebeu o item: ${itemData.name}!`);
-                                        localInventory[emptySlotIndex] = itemData; // Adiciona o item ao inventário local
-                                        saveData(); // Salva o inventário atualizado no Firestore
+                                        localInventory[emptySlotIndex] = itemData;
+                                        saveData();
                                     } else {
                                         alert(`Você recebeu ${itemData.name}, mas seu inventário está cheio!`);
-                                        // Opcional: Enviar o item de volta para o mestre ou deixá-lo no "chão".
                                     }
                                 };
-
-                                // Verifica se o item já foi processado para não duplicar
+                                if (!window.processedEvents) window.processedEvents = new Set();
                                 const eventId = event.id || `${event.timestamp.seconds}-${event.item.id}`;
-                                if (!window.processedEvents) {
-                                    window.processedEvents = new Set();
-                                }
 
                                 if (!window.processedEvents.has(eventId)) {
                                     window.processedEvents.add(eventId);
-
-                                    // Busca os detalhes completos do item na coleção 'items'
                                     campaignDocRef.collection('items').doc(event.item.id).get().then(doc => {
-                                        if (doc.exists) {
-                                            handleItemReceived(doc.data());
-                                        }
-                                    }).catch(error => {
-                                        console.error("Erro ao buscar detalhes do item:", error);
-                                    });
+                                        if (doc.exists) handleItemReceived(doc.data());
+                                    }).catch(error => console.error("Erro ao buscar detalhes do item:", error));
                                 }
-
                             } else if (event.type === 'chat') {
                                 displayChatMessage(event);
                             }
                         });
                     });
+
+                // NOVO LISTENER: Ouve mudanças no documento principal da campanha (para saber o mapa ativo)
                 campaignDocRef.onSnapshot((doc) => {
                     if (doc.exists) {
                         const campaignData = doc.data();
                         elements.campaignNameDisplay.textContent = `Campanha: ${campaignData.name}`;
                         masterId = campaignData.masterId;
-
-                        // Se houver um mapa ativo, busca os detalhes dele
                         if (campaignData.activeMapId) {
                             campaignDocRef.collection('maps').doc(campaignData.activeMapId).get().then(mapDoc => {
                                 if (mapDoc.exists) {
@@ -363,7 +368,7 @@
                                 }
                             });
                         } else {
-                            elements.mapImage.src = ""; // Limpa a imagem se nenhum mapa estiver ativo
+                            elements.mapImage.src = "";
                             elements.mapTitle.textContent = "Nenhum mapa ativo";
                         }
                     }
@@ -377,41 +382,27 @@
                 });
             }
 
-            // Finalmente, chame a função de setup no final do seu script principal
-            setupPlayerMap();
-            })
-
             // --- LÓGICA DO CHAT ---
             function displayChatMessage(message) {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'chat-message';
-
                 const senderSpan = document.createElement('span');
                 senderSpan.className = 'message-sender';
                 senderSpan.textContent = message.senderName;
-
-                if (message.senderId === userId) {
-                    messageDiv.classList.add('own-message');
-                } else if (message.senderId === masterId) {
-                    senderSpan.classList.add('master'); // Estilo especial para o mestre
-                }
-
+                if (message.senderId === userId) messageDiv.classList.add('own-message');
+                else if (message.senderId === masterId) senderSpan.classList.add('master');
                 const textP = document.createElement('p');
                 textP.className = 'message-text';
                 textP.textContent = message.text;
-
                 messageDiv.appendChild(senderSpan);
                 messageDiv.appendChild(textP);
                 elements.chatMessages.appendChild(messageDiv);
-
-                // Rola para a mensagem mais recente
                 elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
             }
 
             function sendChatMessage() {
                 const messageText = elements.chatInputField.value.trim();
                 if (!messageText) return;
-
                 const message = {
                     senderId: userId,
                     senderName: elements.charNameInput.value || auth.currentUser.displayName,
@@ -419,246 +410,212 @@
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     type: 'chat'
                 };
-
                 campaignDocRef.collection('events').add(message);
                 elements.chatInputField.value = '';
             }
 
             elements.sendChatBtn.addEventListener('click', sendChatMessage);
-        elements.chatInputField.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendChatMessage();
-            }
-        });
-
-        elements.toggleChatBtn.addEventListener('click', () => {
-            elements.chatContainer.classList.toggle('collapsed');
-        });
-        elements.chatHeader.addEventListener('click', (e) => {
-            if (e.target.id !== 'toggle-chat-btn') {
+            elements.chatInputField.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendChatMessage();
+            });
+            elements.toggleChatBtn.addEventListener('click', () => {
                 elements.chatContainer.classList.toggle('collapsed');
-            }
-        });
+            });
 
-        // --- O RESTANTE DO SEU CÓDIGO JS VEM AQUI ---
-        // (Lógica de UI, SaveData, Inventário, etc., permanece a mesma)
-        // ...
-        // --- LÓGICA DE ATUALIZAÇÃO DA UI ---
-        function updateUI(data) {
-            elements.charNameInput.value = data.name || '';
-            elements.strengthInput.value = data.strength || 10;
-            elements.dexterityInput.value = data.dexterity || 10;
-            elements.constitutionInput.value = data.constitution || 10;
-            elements.intelligenceInput.value = data.intelligence || 10;
-            elements.perceptionInput.value = data.perception || 10;
-            elements.notesTextarea.value = data.notes || '';
-            elements.characterImage.innerHTML = data.characterImage ? `<img src="${data.characterImage}" alt="Personagem">` : '';
-
-            updateCalculatedStats(data);
-
-            localInventory = data.inventory && data.inventory.length === 8 ? data.inventory : Array(8).fill(null);
-            renderInventory();
-        }
-
-        function updateCalculatedStats(data) {
-            const strength = parseInt(elements.strengthInput.value);
-            const dexterity = parseInt(elements.dexterityInput.value);
-            const constitution = parseInt(elements.constitutionInput.value);
-            const intelligence = parseInt(elements.intelligenceInput.value);
-
-            const lifeTotal = Math.floor((constitution + strength) / 2);
-            elements.lifeTotalSpan.textContent = lifeTotal;
-            elements.sanityTotalSpan.textContent = intelligence * dexterity;
-
-            elements.healthBar.max = lifeTotal;
-            const currentHealth = data ? data.health : parseInt(elements.healthBar.value);
-            elements.healthBar.value = Math.min(currentHealth, lifeTotal);
-            elements.healthValue.textContent = `${elements.healthBar.value}/${lifeTotal}`;
-            updateHealthBarColor();
-        }
-
-        function updateHealthBarColor() {
-            const percent = (elements.healthBar.value / elements.healthBar.max) * 100;
-            const bar = elements.healthBar;
-            bar.className = 'health-bar';
-            if (percent > 60) bar.classList.add('health-green');
-            else if (percent > 30) bar.classList.add('health-yellow');
-            else if (percent > 15) bar.classList.add('health-orange');
-            else bar.classList.add('health-red');
-        }
-
-        // --- LÓGICA DE DADOS E SALVAMENTO NO FIRESTORE ---
-        function saveData() {
-            if (!playerDocRef) return;
-            const dataToSave = {
-                name: elements.charNameInput.value,
-                health: parseInt(elements.healthBar.value), maxHealth: parseInt(elements.healthBar.max),
-                strength: parseInt(elements.strengthInput.value), dexterity: parseInt(elements.dexterityInput.value),
-                constitution: parseInt(elements.constitutionInput.value), intelligence: parseInt(elements.intelligenceInput.value),
-                perception: parseInt(elements.perceptionInput.value),
-                notes: elements.notesTextarea.value,
-                inventory: localInventory,
-                characterImage: elements.characterImage.querySelector('img')?.src || ''
-            };
-            playerDocRef.update(dataToSave).catch(error => console.error("Erro ao salvar dados: ", error));
-        }
-
-        // --- LÓGICA DO INVENTÁRIO ---
-        function renderInventory() {
-            elements.inventoryGrid.innerHTML = '';
-            for (let i = 0; i < 8; i++) {
-                const item = localInventory[i];
-                const slot = document.createElement('div');
-                slot.className = 'inventory-slot';
-                if (item) {
-                    slot.style.backgroundImage = `url('${item.image || 'https://i.imgur.com/qK4EeEa.png'}')`;
-                    if (item.showQuantity) {
-                        slot.innerHTML = `<div class="item-quantity">${item.quantity}</div>`;
-                    }
+            // --- LÓGICA DE ATUALIZAÇÃO DA UI ---
+            function updateUI(data) {
+                elements.charNameInput.value = data.name || '';
+                elements.strengthInput.value = data.strength || 10;
+                elements.dexterityInput.value = data.dexterity || 10;
+                elements.constitutionInput.value = data.constitution || 10;
+                elements.intelligenceInput.value = data.intelligence || 10;
+                elements.perceptionInput.value = data.perception || 10;
+                elements.notesTextarea.value = data.notes || '';
+                if (data.characterImage && !elements.characterImage.querySelector('img')) {
+                    elements.characterImage.innerHTML = `<img src="${data.characterImage}" alt="Personagem">`;
                 }
-                slot.addEventListener('click', () => handleSlotClick(i));
-                elements.inventoryGrid.appendChild(slot);
+                updateCalculatedStats(data);
+                localInventory = data.inventory && data.inventory.length === 8 ? data.inventory : Array(8).fill(null);
+                renderInventory();
             }
-        }
 
-        function handleSlotClick(index) {
-            if (localInventory[index]) {
-                selectItem(index);
-            } else {
-                const fileInput = document.createElement('input');
-                fileInput.type = 'file';
-                fileInput.accept = 'image/*';
-                fileInput.onchange = e => {
-                    if (!e.target.files[0]) return;
+            function updateCalculatedStats(data) {
+                const constitution = parseInt(elements.constitutionInput.value);
+                const strength = parseInt(elements.strengthInput.value);
+                const lifeTotal = Math.floor((constitution + strength) / 2);
+                elements.lifeTotalSpan.textContent = lifeTotal;
+                elements.healthBar.max = lifeTotal;
+                const currentHealth = data ? data.health : parseInt(elements.healthBar.value);
+                elements.healthBar.value = Math.min(currentHealth, lifeTotal);
+                elements.healthValue.textContent = `${elements.healthBar.value}/${lifeTotal}`;
+                updateHealthBarColor();
+            }
+             function updateHealthBarColor() {
+                const percent = (elements.healthBar.value / elements.healthBar.max) * 100;
+                const bar = elements.healthBar;
+                bar.className = 'health-bar';
+                if (percent > 60) bar.classList.add('health-green');
+                else if (percent > 30) bar.classList.add('health-yellow');
+                else if (percent > 15) bar.classList.add('health-orange');
+                else bar.classList.add('health-red');
+            }
+
+            // --- LÓGICA DE DADOS E SALVAMENTO ---
+            function saveData() {
+                if (!playerDocRef) return;
+                const dataToSave = {
+                    name: elements.charNameInput.value,
+                    health: parseInt(elements.healthBar.value), maxHealth: parseInt(elements.healthBar.max),
+                    strength: parseInt(elements.strengthInput.value), dexterity: parseInt(elements.dexterityInput.value),
+                    constitution: parseInt(elements.constitutionInput.value), intelligence: parseInt(elements.intelligenceInput.value),
+                    perception: parseInt(elements.perceptionInput.value),
+                    notes: elements.notesTextarea.value,
+                    inventory: localInventory,
+                    characterImage: elements.characterImage.querySelector('img')?.src || ''
+                };
+                playerDocRef.update(dataToSave).catch(error => console.error("Erro ao salvar dados: ", error));
+            }
+
+            // --- LÓGICA DO INVENTÁRIO ---
+            function renderInventory() {
+                elements.inventoryGrid.innerHTML = '';
+                for (let i = 0; i < 8; i++) {
+                    const item = localInventory[i];
+                    const slot = document.createElement('div');
+                    slot.className = 'inventory-slot';
+                    if (item && item.image) {
+                        slot.style.backgroundImage = `url('${item.image}')`;
+                        if (item.showQuantity) {
+                            slot.innerHTML = `<div class="item-quantity">${item.quantity}</div>`;
+                        }
+                    }
+                    slot.addEventListener('click', () => selectItem(i));
+                    elements.inventoryGrid.appendChild(slot);
+                }
+            }
+
+            function selectItem(index) {
+                document.querySelectorAll('.inventory-slot.selected').forEach(s => s.classList.remove('selected'));
+                elements.inventoryGrid.children[index].classList.add('selected');
+
+                const item = localInventory[index];
+                if(item) {
+                    elements.selectedItemDisplay.textContent = item.name;
+                    elements.itemDescription.innerHTML = `<p>${item.description}</p><p><strong>Tipo:</strong> ${item.type}</p>`;
+                    if (item.type === 'weapon') elements.equippedWeapon.innerHTML = `Arma: ${item.name}`;
+                }
+            }
+            
+            // --- LÓGICA DO MAPA (NOVO) ---
+            function setupPlayerMap() {
+                const canvas = elements.playerFogOfWarCanvas;
+                const mapImage = elements.mapImage;
+                mapState.ctx = canvas.getContext('2d');
+                
+                const resizeCanvas = () => {
+                    if (mapImage.naturalWidth > 0) {
+                        const mapAspectRatio = mapImage.naturalHeight / mapImage.naturalWidth;
+                        const containerWidth = mapImage.parentElement.clientWidth;
+                        canvas.width = containerWidth;
+                        canvas.height = containerWidth * mapAspectRatio;
+                        mapImage.style.height = `${canvas.height}px`; // Ajusta a imagem
+                        drawPlayerFogOfWar();
+                    }
+                };
+
+                mapImage.onload = resizeCanvas;
+                window.addEventListener('resize', resizeCanvas);
+            }
+
+            function drawPlayerFogOfWar() {
+                if (!mapState.ctx) return;
+                const { ctx, revealedAreas } = mapState;
+                const canvas = elements.playerFogOfWarCanvas;
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height); 
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                if (revealedAreas && revealedAreas.length > 0) {
+                    ctx.globalCompositeOperation = 'destination-out';
+                    revealedAreas.forEach(area => {
+                        ctx.fillRect(area.x * canvas.width, area.y * canvas.height, area.w * canvas.width, area.h * canvas.height);
+                    });
+                    ctx.globalCompositeOperation = 'source-over';
+                }
+            }
+
+            // --- EVENT LISTENERS GERAIS ---
+            [elements.charNameInput, elements.strengthInput, elements.dexterityInput, elements.constitutionInput, elements.intelligenceInput, elements.perceptionInput].forEach(input => {
+                input.addEventListener('change', () => {
+                    updateCalculatedStats();
+                    saveData();
+                });
+            });
+
+            elements.increaseHealthBtn.addEventListener('click', () => adjustHealth(1));
+            elements.decreaseHealthBtn.addEventListener('click', () => adjustHealth(-1));
+            function adjustHealth(amount) {
+                let newHealth = parseInt(elements.healthBar.value) + amount;
+                newHealth = Math.max(0, Math.min(newHealth, elements.healthBar.max));
+                elements.healthBar.value = newHealth;
+                updateCalculatedStats();
+                saveData();
+            }
+
+            elements.characterImage.addEventListener('click', () => elements.imageUpload.click());
+            elements.imageUpload.addEventListener('change', e => {
+                if (e.target.files[0]) {
                     const reader = new FileReader();
                     reader.onload = event => {
-                        const itemData = parseFileName(e.target.files[0].name);
-                        itemData.image = event.target.result;
-                        localInventory[index] = itemData;
+                        elements.characterImage.innerHTML = `<img src="${event.target.result}" alt="Personagem">`;
                         saveData();
                     };
                     reader.readAsDataURL(e.target.files[0]);
-                };
-                fileInput.click();
-            }
-        }
+                }
+            });
 
-        function selectItem(index) {
-            document.querySelectorAll('.inventory-slot.selected').forEach(s => s.classList.remove('selected'));
-            elements.inventoryGrid.children[index].classList.add('selected');
-
-            const item = localInventory[index];
-            elements.selectedItemDisplay.textContent = item.name;
-            elements.itemDescription.innerHTML = `<p>${item.description}</p><p><strong>Tipo:</strong> ${item.type}</p>`;
-            if (item.type === 'weapon') elements.equippedWeapon.innerHTML = `Arma: ${item.name}`;
-        }
-
-        function parseFileName(filename) {
-            const baseName = filename.replace(/\.[^/.]+$/, "");
-            const parts = baseName.split(' - ');
-            return { name: parts[0] || "Item", description: parts[1] || "Sem descrição", type: parts[2] || "misc", quantity: parseInt(parts[3]) || 1, showQuantity: ["weapon", "ammo", "healing"].includes(parts[2]), image: '' };
-        }
-
-        function handleItemReceived(item) {
-            const emptySlotIndex = localInventory.findIndex(slot => slot === null);
-            if (emptySlotIndex !== -1) {
-                alert(`Você recebeu o item: ${item.name}!`);
-                campaignDocRef.collection('items').doc(item.id).get().then(doc => {
-                    if (doc.exists) {
-                        localInventory[emptySlotIndex] = { ...doc.data(), ...item };
-                        saveData();
-                    }
+            // --- LÓGICA DOS MODAIS E OUTROS ---
+            elements.docsBtn.addEventListener('click', () => { elements.docsModal.style.display = 'block'; });
+            elements.saveNotesBtn.addEventListener('click', saveData);
+            elements.mapBtn.addEventListener('click', () => { elements.mapModal.style.display = 'block'; });
+            elements.diceBtn.addEventListener('click', () => { elements.diceModal.style.display = 'block'; });
+            elements.audioToggle.addEventListener('click', () => {
+                if (elements.backgroundAudio.paused) {
+                    elements.backgroundAudio.play().catch(e => console.log("Playback falhou", e));
+                    elements.audioIcon.textContent = '🔊';
+                } else {
+                    elements.backgroundAudio.pause();
+                    elements.audioIcon.textContent = '🔇';
+                }
+            });
+            
+            document.querySelectorAll('.dice-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const sides = parseInt(btn.dataset.sides);
+                    const result = Math.floor(Math.random() * sides) + 1;
+                    elements.diceResultDiv.textContent = `Resultado d${sides}: ${result}`;
                 });
-            } else {
-                alert(`Você recebeu ${item.name}, mas seu inventário está cheio!`);
-            }
-        }
-
-        // --- EVENT LISTENERS PARA AÇÕES DO JOGADOR ---
-        [elements.charNameInput, elements.strengthInput, elements.dexterityInput, elements.constitutionInput, elements.intelligenceInput, elements.perceptionInput].forEach(input => {
-            input.addEventListener('change', () => {
-                updateCalculatedStats();
-                saveData();
             });
-        });
 
-        elements.increaseHealthBtn.addEventListener('click', () => adjustHealth(1));
-        elements.decreaseHealthBtn.addEventListener('click', () => adjustHealth(-1));
-        function adjustHealth(amount) {
-            let newHealth = parseInt(elements.healthBar.value) + amount;
-            newHealth = Math.max(0, Math.min(newHealth, elements.healthBar.max));
-            elements.healthBar.value = newHealth;
-            updateCalculatedStats();
-            saveData();
-        }
-
-        elements.characterImage.addEventListener('click', () => elements.imageUpload.click());
-        elements.imageUpload.addEventListener('change', e => {
-            if (e.target.files[0]) {
-                const reader = new FileReader();
-                reader.onload = event => {
-                    elements.characterImage.innerHTML = `<img src="${event.target.result}" alt="Personagem">`;
-                    saveData();
-                };
-                reader.readAsDataURL(e.target.files[0]);
-            }
-        });
-
-        // --- LÓGICA DOS MODAIS E OUTROS ---
-        elements.docsBtn.addEventListener('click', () => { elements.docsModal.style.display = 'block'; });
-        elements.saveNotesBtn.addEventListener('click', saveData);
-        elements.mapBtn.addEventListener('click', () => { loadMap(currentMapIndex); elements.mapModal.style.display = 'block'; });
-        elements.diceBtn.addEventListener('click', () => { elements.diceModal.style.display = 'block'; });
-        elements.audioToggle.addEventListener('click', toggleAudio);
-
-        function toggleAudio() {
-            if (elements.backgroundAudio.paused) {
-                elements.backgroundAudio.play().catch(e => console.log("Playback falhou", e));
-                elements.audioIcon.textContent = '🔊';
-            } else {
-                elements.backgroundAudio.pause();
-                elements.audioIcon.textContent = '🔇';
-            }
-        }
-
-        function loadMap(index) {
-            const map = mansionMaps[index];
-            elements.mapImage.src = map.path;
-            elements.mapTitle.textContent = `Mansão - ${map.name}`;
-            elements.prevMapBtn.disabled = index === 0;
-            elements.nextMapBtn.disabled = index === mansionMaps.length - 1;
-        }
-        elements.prevMapBtn.addEventListener('click', () => { if (currentMapIndex > 0) { currentMapIndex--; loadMap(currentMapIndex); } });
-        elements.nextMapBtn.addEventListener('click', () => { if (currentMapIndex < mansionMaps.length - 1) { currentMapIndex++; loadMap(currentMapIndex); } });
-
-        document.querySelectorAll('.dice-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const sides = parseInt(btn.dataset.sides);
-                const result = Math.floor(Math.random() * sides) + 1;
-                elements.diceResultDiv.textContent = `Resultado d${sides}: ${result}`;
+            document.querySelectorAll('.close-btn').forEach(btn => {
+                btn.onclick = () => {
+                    btn.closest('.modal').style.display = 'none';
+                    if (btn.closest('.modal').id === 'docs-modal') saveData();
+                }
             });
-        });
-
-        document.querySelectorAll('.close-btn').forEach(btn => {
-            btn.onclick = () => {
-                btn.closest('.modal').style.display = 'none';
-                if (btn.closest('.modal').id === 'docs-modal') saveData();
+            window.onclick = (e) => {
+                if (e.target.classList.contains('modal')) {
+                    e.target.style.display = 'none';
+                    if (e.target.id === 'docs-modal') saveData();
+                }
             }
-        });
-        window.onclick = (e) => {
-            if (e.target.classList.contains('modal')) {
-                e.target.style.display = 'none';
-                if (e.target.id === 'docs-modal') saveData();
-            }
-        }
 
-        elements.backToCampaignsBtn.addEventListener('click', () => { window.location.href = 'campaign.html'; 
+            elements.backToCampaignsBtn.addEventListener('click', () => { window.location.href = 'campaign.html'; });
+
+            // Inicializa o mapa do jogador
+            setupPlayerMap();
         });
-        
     </script>
 </body>
-
-</html>
-</body>
-
 </html>

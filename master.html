@@ -12,6 +12,132 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+
+    <style>
+        /* ESTILOS ADICIONADOS E CORRIGIDOS */
+        body {
+            font-family: 'IM Fell English SC', serif;
+        }
+
+        .re-btn {
+            padding: 0.8rem 1.4rem;
+            background-color: rgba(60, 60, 60, 0.9);
+            color: #e0e0e0;
+            border: 1px solid #c0a050;
+            border-radius: 4px;
+            font-family: 'IM Fell English SC', serif;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .re-btn:hover {
+            background-color: #c0a050;
+            color: #111;
+        }
+        .re-btn-secondary {
+            background-color: transparent;
+            border-color: rgba(192, 160, 80, 0.5);
+        }
+        .re-btn-secondary:hover {
+            background-color: rgba(192, 160, 80, 0.2);
+            color: #e0e0e0;
+        }
+        .re-btn-danger {
+            border-color: #9a3a3a;
+            color: #ffb8b8;
+        }
+        .re-btn-danger:hover {
+            background-color: #9a3a3a;
+            border-color: #9a3a3a;
+            color: #fff;
+        }
+        .re-btn-icon {
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            width: 80px;
+        }
+        .controls-bar .re-btn {
+            font-size: 0.9rem;
+            padding: 0.6rem 1rem;
+        }
+        .master-chat .re-btn {
+            padding: 0.8rem;
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+
+        /* === ESTILOS PARA O MODAL DE AÇÕES DO JOGADOR === */
+        #playerActionModal .modal-content {
+            background-color: rgba(20, 20, 20, 0.98);
+            border: 1px solid #c0a050;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.7);
+        }
+        #playerActionModal h2 {
+            color: #c0a050;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.6rem;
+        }
+        #playerActionModal .form-section {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(192, 160, 80, 0.2);
+        }
+        #playerActionModal .form-section h3 {
+            color: #c0a050;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #playerActionModal input[type="number"],
+        #playerActionModal select {
+            width: 100%;
+            padding: 0.8rem;
+            background-color: rgba(51, 51, 51, 0.8);
+            border: 1px solid rgba(85, 85, 85, 0.5);
+            color: white;
+            border-radius: 4px;
+            font-family: 'IM Fell English SC', serif;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+        #playerActionModal input[type="number"]:focus,
+        #playerActionModal select:focus {
+            border-color: #c0a050;
+            outline: none;
+            box-shadow: 0 0 10px rgba(192, 160, 80, 0.2);
+        }
+        #playerActionModal .health-control,
+        #playerActionModal .item-send {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        #playerActionModal .health-control span {
+            color: #c0a050;
+            font-size: 1.2rem;
+        }
+        #playerActionModal .small-btn {
+            padding: 0.8rem;
+            background-color: rgba(74, 74, 74, 0.8);
+            color: #c0a050;
+            border: 1px solid rgba(192, 160, 80, 0.5);
+            border-radius: 4px;
+            font-family: 'IM Fell English SC', serif;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        #playerActionModal .small-btn:hover {
+            background-color: #c0a050;
+            color: black;
+        }
+    </style>
 </head>
 <body>
     <div id="notification-container"></div>
@@ -19,12 +145,12 @@
         <header class="master-header">
             <div class="campaign-info">
                 <h1 id="campaignTitle">Carregando...</h1>
-                <p id="campaignCode">Código: <span>...</span> <button id="copyCode" title="Copiar Código">Copiar</button></p>
+                <p id="campaignCode">Código: <span>...</span> <button id="copyCode" class="re-btn re-btn-icon" title="Copiar Código">Copiar</button></p>
             </div>
             <div class="master-controls">
-                <button id="saveNotesBtn">Salvar Anotações</button>
-                <button id="endSessionBtn">Encerrar Sessão</button>
-                <button id="masterLogoutBtn">Sair</button>
+                <button id="saveNotesBtn" class="re-btn">Salvar Anotações</button>
+                <button id="endSessionBtn" class="re-btn re-btn-danger">Encerrar Sessão</button>
+                <button id="masterLogoutBtn" class="re-btn re-btn-secondary">Sair</button>
             </div>
         </header>
 
@@ -35,7 +161,7 @@
                     <div class="empty-placeholder">Nenhum jogador conectado</div>
                 </div>
                 <div class="player-actions">
-                    <button id="addNpcBtn">Adicionar NPC</button>
+                    <button id="addNpcBtn" class="re-btn">Adicionar NPC</button>
                 </div>
             </aside>
 
@@ -51,12 +177,12 @@
                 <div class="tab-content active" id="notesTab"><textarea id="masterNotes" placeholder="Anotações privadas do mestre..."></textarea></div>
                 
                 <div class="tab-content" id="itemsTab">
-                    <div class="controls-bar"><button id="addItemBtn">Criar Novo Item</button></div>
+                    <div class="controls-bar"><button id="addItemBtn" class="re-btn">Criar Novo Item</button></div>
                     <div class="card-list" id="masterItemList"><div class="empty-placeholder">Nenhum item criado.</div></div>
                 </div>
                 
                 <div class="tab-content" id="enemiesTab">
-                    <div class="controls-bar"><button id="addEnemyBtn">Adicionar Inimigo</button></div>
+                    <div class="controls-bar"><button id="addEnemyBtn" class="re-btn">Adicionar Inimigo</button></div>
                     <div class="card-list" id="enemyList"><div class="empty-placeholder">Nenhum inimigo adicionado.</div></div>
                 </div>
                 
@@ -66,7 +192,7 @@
                         <div class="controls-bar">
                             <input type="text" id="mapNameInput" placeholder="Nome do Mapa (Ex: Mansão 1F)">
                             <input type="url" id="mapUrlInput" placeholder="URL da Imagem do Mapa">
-                            <button id="addMapBtn">Adicionar Mapa</button>
+                            <button id="addMapBtn" class="re-btn">Adicionar Mapa</button>
                         </div>
                         <div id="mapList" class="map-list"></div>
                     </div>
@@ -76,7 +202,7 @@
                             <img src="" alt="Selecione um mapa na lista acima" id="masterMap">
                             <canvas id="fogOfWarCanvas"></canvas>
                         </div>
-                        <div class="map-tools"><button id="clearMapBtn">Limpar Revelações do Mapa</button></div>
+                        <div class="map-tools"><button id="clearMapBtn" class="re-btn re-btn-secondary">Limpar Revelações</button></div>
                     </div>
                 </div>
                 
@@ -84,13 +210,13 @@
                     <div class="dice-roller">
                         <h3>Rolador de Dados (Envia para o Chat)</h3>
                         <div class="dice-controls">
-                            <button class="dice-btn" data-sides="4">d4</button>
-                            <button class="dice-btn" data-sides="6">d6</button>
-                            <button class="dice-btn" data-sides="8">d8</button>
-                            <button class="dice-btn" data-sides="10">d10</button>
-                            <button class="dice-btn" data-sides="12">d12</button>
-                            <button class="dice-btn" data-sides="20">d20</button>
-                            <button class="dice-btn" data-sides="100">d100</button>
+                            <button class="dice-btn re-btn" data-sides="4">d4</button>
+                            <button class="dice-btn re-btn" data-sides="6">d6</button>
+                            <button class="dice-btn re-btn" data-sides="8">d8</button>
+                            <button class="dice-btn re-btn" data-sides="10">d10</button>
+                            <button class="dice-btn re-btn" data-sides="12">d12</button>
+                            <button class="dice-btn re-btn" data-sides="20">d20</button>
+                            <button class="dice-btn re-btn" data-sides="100">d100</button>
                         </div>
                     </div>
                 </div>
@@ -101,7 +227,7 @@
             <div class="chat-header"><h2>Chat da Campanha</h2><button id="toggleChatBtn" title="Minimizar/Maximizar Chat">_</button></div>
             <div class="chat-messages" id="masterChatMessages"></div>
             <div class="chat-input">
-                <input type="text" id="masterChatInput" placeholder="Digite uma mensagem e pressione Enter..."><button id="sendMasterMsgBtn" class="chat-send-btn">Enviar</button>
+                <input type="text" id="masterChatInput" placeholder="Digite uma mensagem e pressione Enter..."><button id="sendMasterMsgBtn" class="re-btn">Enviar</button>
             </div>
         </footer>
     </div>
