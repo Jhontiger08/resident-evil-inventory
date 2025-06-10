@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const currentCampaignId = new URLSearchParams(window.location.search).get('campaign');
     if (!currentCampaignId) {
-        window.location.href = 'index.html';
+        window.location.href = 'campaign.html';
         return;
     }
 
@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         ui.playerCount.textContent = `(${appState.players.length}/${appState.campaignMaxPlayers || 'N/A'})`;
     };
-
+    
     const renderGenericList = (list, container, renderFunc) => {
         container.innerHTML = list.length === 0 ? `<div class="empty-placeholder">Nenhum registro encontrado.</div>` : '';
         list.forEach(item => renderFunc(item, container));
@@ -200,12 +200,12 @@ document.addEventListener('DOMContentLoaded', function () {
         modal.querySelector('h2').textContent = data.id ? `Editar ${entity}` : `Criar Novo ${entity}`;
         form.querySelector('input[type="hidden"]').value = data.id || '';
         
-        Object.keys(form.elements).forEach(key => {
-            const input = form.elements[key];
-            if (data[input.id.replace(entity, '').toLowerCase()]) {
-                input.value = data[input.id.replace(entity, '').toLowerCase()];
+        // Preenche campos genéricos
+        for(const element of form.elements) {
+            if(element.id && data[element.id.replace(entity, '').toLowerCase()]) {
+                element.value = data[element.id.replace(entity, '').toLowerCase()];
             }
-        });
+        }
 
         if (modalId === 'itemModal') {
             updateItemSpecificFields(data.type || 'misc', data);
@@ -355,7 +355,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (user) {
                 appState.currentUser = user;
                 loadInitialData();
-            } else { window.location.href = 'index.html'; }
+            } else { window.location.href = 'index.html'; } // Corrigido para novo nome do login
         });
     };
 
@@ -454,6 +454,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const sides = parseInt(e.target.dataset.sides);
             const result = Math.floor(Math.random() * sides) + 1;
             const rollText = `(Mestre) rolou d${sides}: ${result}`;
+            
             eventsRef.add({ type: 'dice_roll', senderId: appState.currentUser.uid, senderName: appState.masterInfo.name || 'Mestre', text: rollText, timestamp: firebase.firestore.FieldValue.serverTimestamp() })
                 .then(() => showNotification('Rolagem enviada para o chat!', 'info'));
         }));
