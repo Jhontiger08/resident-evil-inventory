@@ -117,12 +117,9 @@
         </footer>
     </div>
 
-    <div id="map-modal" class="modal">
-        <div class="modal-content"><span class="close-btn">&times;</span>
-            <div class="map-controls"><button id="prev-map">Anterior</button><span id="map-title">Mapa</span><button
-                    id="next-map">Próximo</button></div>
-            <div class="map-container"><img id="map-image" src="" alt="Mapa"></div>
-        </div>
+    <div class="map-container">
+        <img id="map-image" src="" alt="Mapa da campanha">
+        <canvas id="player-fog-of-war"></canvas>
     </div>
     <div id="docs-modal" class="modal">
         <div class="modal-content docs-content"><span class="close-btn">&times;</span>
@@ -182,6 +179,7 @@
                 notesTextarea: document.getElementById('notes-textarea'),
                 docsBtn: document.getElementById('docs-btn'),
                 mapBtn: document.getElementById('map-btn'),
+                playerFogOfWarCanvas: document.getElementById('player-fog-of-war'),
                 diceBtn: document.getElementById('dice-btn'),
                 audioToggle: document.getElementById('audio-toggle'),
                 audioIcon: document.getElementById('audio-icon'),
@@ -211,16 +209,7 @@
             let localInventory = Array(8).fill(null);
             let currentMapIndex = 0;
             let masterId = null; // Guardará o ID do mestre
-
-            // ... (resto do seu código de definições e inicialização)
-            const mansionMaps = [
-                { name: "1º Andar", path: "https://static.wikia.nocookie.net/residentevil/images/5/58/Resident_Evil_Remake_Map_Mansion_1F.jpg" },
-                { name: "2º Andar", path: "https://static.wikia.nocookie.net/residentevil/images/f/f6/Resident_Evil_Remake_Map_Mansion_2F.jpg" },
-                { name: "Sótão", path: "https://static.wikia.nocookie.net/residentevil/images/c/c5/Resident_Evil_Remake_Map_Mansion_3F.jpg" },
-                { name: "Porão", path: "https://static.wikia.nocookie.net/residentevil/images/f/fe/Resident_Evil_Remake_Map_Mansion_B1.jpg" }
-            ];
-            elements.backgroundAudio.src = 'https://github.com/soundeffects/soundeffects.github.io/raw/master/sounds/RE1-save-room.mp3';
-            elements.backgroundAudio.volume = 0.3;
+            let mapState = { ctx: null, revealedAreas: [] };
 
             // --- INICIALIZAÇÃO E AUTENTICAÇÃO ---
             auth.onAuthStateChanged((user) => {
@@ -262,6 +251,43 @@
                 attachListeners();
             }
 
+            function setupPlayerMap() {
+                const canvas = elements.playerFogOfWarCanvas;
+                const mapImage = elements.mapImage;
+                mapState.ctx = canvas.getContext('2d');
+
+                const resizeCanvas = () => {
+                    if (mapImage.naturalWidth > 0) {
+                        const aspectRatio = mapImage.naturalHeight / mapImage.naturalWidth;
+                        canvas.width = mapImage.clientWidth;
+                        canvas.height = mapImage.clientWidth * aspectRatio;
+                        drawPlayerFogOfWar();
+                    }
+                };
+
+                mapImage.onload = resizeCanvas;
+                window.addEventListener('resize', resizeCanvas);
+            }
+
+            // FUNÇÃO PARA DESENHAR O FOG OF WAR DO JOGADOR
+            function drawPlayerFogOfWar() {
+                if (!mapState.ctx) return;
+                const { ctx, revealedAreas } = mapState;
+                const canvas = elements.playerFogOfWarCanvas;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpa o canvas
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                if (revealedAreas && revealedAreas.length > 0) {
+                    ctx.globalCompositeOperation = 'destination-out';
+                    revealedAreas.forEach(area => {
+                        ctx.fillRect(area.x * canvas.width, area.y * canvas.height, area.w * canvas.width, area.h * canvas.height);
+                    });
+                    ctx.globalCompositeOperation = 'source-over';
+                }
+            }
+
             // --- LISTENERS DE DADOS EM TEMPO REAL ---
             function attachListeners() {
                 if (unsubscribePlayer) unsubscribePlayer();
@@ -281,15 +307,79 @@
 
                         // Exibe na ordem correta (mais antigo primeiro)
                         events.reverse().forEach(event => {
+                            // SEÇÃO CORRIGIDA PARA RECEBER ITENS
                             if (event.type === 'item_received' && event.recipientId === userId) {
-                                // A lógica de receber item já é tratada pelo listener do jogador,
-                                // mas poderíamos mostrar uma notificação no chat aqui se quiséssemos.
+
+                                // Função para adicionar o item ao inventário do jogador
+                                const handleItemReceived = (itemData) => {
+                                    const emptySlotIndex = localInventory.findIndex(slot => slot === null);
+
+                                    if (emptySlotIndex !== -1) {
+                                        alert(`Você recebeu o item: ${itemData.name}!`);
+                                        localInventory[emptySlotIndex] = itemData; // Adiciona o item ao inventário local
+                                        saveData(); // Salva o inventário atualizado no Firestore
+                                    } else {
+                                        alert(`Você recebeu ${itemData.name}, mas seu inventário está cheio!`);
+                                        // Opcional: Enviar o item de volta para o mestre ou deixá-lo no "chão".
+                                    }
+                                };
+
+                                // Verifica se o item já foi processado para não duplicar
+                                const eventId = event.id || `${event.timestamp.seconds}-${event.item.id}`;
+                                if (!window.processedEvents) {
+                                    window.processedEvents = new Set();
+                                }
+
+                                if (!window.processedEvents.has(eventId)) {
+                                    window.processedEvents.add(eventId);
+
+                                    // Busca os detalhes completos do item na coleção 'items'
+                                    campaignDocRef.collection('items').doc(event.item.id).get().then(doc => {
+                                        if (doc.exists) {
+                                            handleItemReceived(doc.data());
+                                        }
+                                    }).catch(error => {
+                                        console.error("Erro ao buscar detalhes do item:", error);
+                                    });
+                                }
+
                             } else if (event.type === 'chat') {
                                 displayChatMessage(event);
                             }
                         });
                     });
+                campaignDocRef.onSnapshot((doc) => {
+                    if (doc.exists) {
+                        const campaignData = doc.data();
+                        elements.campaignNameDisplay.textContent = `Campanha: ${campaignData.name}`;
+                        masterId = campaignData.masterId;
+
+                        // Se houver um mapa ativo, busca os detalhes dele
+                        if (campaignData.activeMapId) {
+                            campaignDocRef.collection('maps').doc(campaignData.activeMapId).get().then(mapDoc => {
+                                if (mapDoc.exists) {
+                                    elements.mapImage.src = mapDoc.data().url;
+                                    elements.mapTitle.textContent = mapDoc.data().name;
+                                }
+                            });
+                        } else {
+                            elements.mapImage.src = ""; // Limpa a imagem se nenhum mapa estiver ativo
+                            elements.mapTitle.textContent = "Nenhum mapa ativo";
+                        }
+                    }
+                });
+
+                // NOVO LISTENER: Ouve as mudanças no estado do mapa (áreas reveladas)
+                const mapStateRef = campaignDocRef.collection('mapState').doc('current');
+                mapStateRef.onSnapshot((doc) => {
+                    mapState.revealedAreas = doc.exists && doc.data().revealed ? doc.data().revealed : [];
+                    drawPlayerFogOfWar();
+                });
             }
+
+            // Finalmente, chame a função de setup no final do seu script principal
+            setupPlayerMap();
+            })
 
             // --- LÓGICA DO CHAT ---
             function displayChatMessage(message) {
@@ -335,235 +425,236 @@
             }
 
             elements.sendChatBtn.addEventListener('click', sendChatMessage);
-            elements.chatInputField.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    sendChatMessage();
-                }
-            });
+        elements.chatInputField.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        });
 
-            elements.toggleChatBtn.addEventListener('click', () => {
+        elements.toggleChatBtn.addEventListener('click', () => {
+            elements.chatContainer.classList.toggle('collapsed');
+        });
+        elements.chatHeader.addEventListener('click', (e) => {
+            if (e.target.id !== 'toggle-chat-btn') {
                 elements.chatContainer.classList.toggle('collapsed');
-            });
-            elements.chatHeader.addEventListener('click', (e) => {
-                if (e.target.id !== 'toggle-chat-btn') {
-                    elements.chatContainer.classList.toggle('collapsed');
-                }
-            });
-
-            // --- O RESTANTE DO SEU CÓDIGO JS VEM AQUI ---
-            // (Lógica de UI, SaveData, Inventário, etc., permanece a mesma)
-            // ...
-            // --- LÓGICA DE ATUALIZAÇÃO DA UI ---
-            function updateUI(data) {
-                elements.charNameInput.value = data.name || '';
-                elements.strengthInput.value = data.strength || 10;
-                elements.dexterityInput.value = data.dexterity || 10;
-                elements.constitutionInput.value = data.constitution || 10;
-                elements.intelligenceInput.value = data.intelligence || 10;
-                elements.perceptionInput.value = data.perception || 10;
-                elements.notesTextarea.value = data.notes || '';
-                elements.characterImage.innerHTML = data.characterImage ? `<img src="${data.characterImage}" alt="Personagem">` : '';
-
-                updateCalculatedStats(data);
-
-                localInventory = data.inventory && data.inventory.length === 8 ? data.inventory : Array(8).fill(null);
-                renderInventory();
             }
+        });
 
-            function updateCalculatedStats(data) {
-                const strength = parseInt(elements.strengthInput.value);
-                const dexterity = parseInt(elements.dexterityInput.value);
-                const constitution = parseInt(elements.constitutionInput.value);
-                const intelligence = parseInt(elements.intelligenceInput.value);
+        // --- O RESTANTE DO SEU CÓDIGO JS VEM AQUI ---
+        // (Lógica de UI, SaveData, Inventário, etc., permanece a mesma)
+        // ...
+        // --- LÓGICA DE ATUALIZAÇÃO DA UI ---
+        function updateUI(data) {
+            elements.charNameInput.value = data.name || '';
+            elements.strengthInput.value = data.strength || 10;
+            elements.dexterityInput.value = data.dexterity || 10;
+            elements.constitutionInput.value = data.constitution || 10;
+            elements.intelligenceInput.value = data.intelligence || 10;
+            elements.perceptionInput.value = data.perception || 10;
+            elements.notesTextarea.value = data.notes || '';
+            elements.characterImage.innerHTML = data.characterImage ? `<img src="${data.characterImage}" alt="Personagem">` : '';
 
-                const lifeTotal = Math.floor((constitution + strength) / 2);
-                elements.lifeTotalSpan.textContent = lifeTotal;
-                elements.sanityTotalSpan.textContent = intelligence * dexterity;
+            updateCalculatedStats(data);
 
-                elements.healthBar.max = lifeTotal;
-                const currentHealth = data ? data.health : parseInt(elements.healthBar.value);
-                elements.healthBar.value = Math.min(currentHealth, lifeTotal);
-                elements.healthValue.textContent = `${elements.healthBar.value}/${lifeTotal}`;
-                updateHealthBarColor();
-            }
+            localInventory = data.inventory && data.inventory.length === 8 ? data.inventory : Array(8).fill(null);
+            renderInventory();
+        }
 
-            function updateHealthBarColor() {
-                const percent = (elements.healthBar.value / elements.healthBar.max) * 100;
-                const bar = elements.healthBar;
-                bar.className = 'health-bar';
-                if (percent > 60) bar.classList.add('health-green');
-                else if (percent > 30) bar.classList.add('health-yellow');
-                else if (percent > 15) bar.classList.add('health-orange');
-                else bar.classList.add('health-red');
-            }
+        function updateCalculatedStats(data) {
+            const strength = parseInt(elements.strengthInput.value);
+            const dexterity = parseInt(elements.dexterityInput.value);
+            const constitution = parseInt(elements.constitutionInput.value);
+            const intelligence = parseInt(elements.intelligenceInput.value);
 
-            // --- LÓGICA DE DADOS E SALVAMENTO NO FIRESTORE ---
-            function saveData() {
-                if (!playerDocRef) return;
-                const dataToSave = {
-                    name: elements.charNameInput.value,
-                    health: parseInt(elements.healthBar.value), maxHealth: parseInt(elements.healthBar.max),
-                    strength: parseInt(elements.strengthInput.value), dexterity: parseInt(elements.dexterityInput.value),
-                    constitution: parseInt(elements.constitutionInput.value), intelligence: parseInt(elements.intelligenceInput.value),
-                    perception: parseInt(elements.perceptionInput.value),
-                    notes: elements.notesTextarea.value,
-                    inventory: localInventory,
-                    characterImage: elements.characterImage.querySelector('img')?.src || ''
-                };
-                playerDocRef.update(dataToSave).catch(error => console.error("Erro ao salvar dados: ", error));
-            }
+            const lifeTotal = Math.floor((constitution + strength) / 2);
+            elements.lifeTotalSpan.textContent = lifeTotal;
+            elements.sanityTotalSpan.textContent = intelligence * dexterity;
 
-            // --- LÓGICA DO INVENTÁRIO ---
-            function renderInventory() {
-                elements.inventoryGrid.innerHTML = '';
-                for (let i = 0; i < 8; i++) {
-                    const item = localInventory[i];
-                    const slot = document.createElement('div');
-                    slot.className = 'inventory-slot';
-                    if (item) {
-                        slot.style.backgroundImage = `url('${item.image || 'https://i.imgur.com/qK4EeEa.png'}')`;
-                        if (item.showQuantity) {
-                            slot.innerHTML = `<div class="item-quantity">${item.quantity}</div>`;
-                        }
+            elements.healthBar.max = lifeTotal;
+            const currentHealth = data ? data.health : parseInt(elements.healthBar.value);
+            elements.healthBar.value = Math.min(currentHealth, lifeTotal);
+            elements.healthValue.textContent = `${elements.healthBar.value}/${lifeTotal}`;
+            updateHealthBarColor();
+        }
+
+        function updateHealthBarColor() {
+            const percent = (elements.healthBar.value / elements.healthBar.max) * 100;
+            const bar = elements.healthBar;
+            bar.className = 'health-bar';
+            if (percent > 60) bar.classList.add('health-green');
+            else if (percent > 30) bar.classList.add('health-yellow');
+            else if (percent > 15) bar.classList.add('health-orange');
+            else bar.classList.add('health-red');
+        }
+
+        // --- LÓGICA DE DADOS E SALVAMENTO NO FIRESTORE ---
+        function saveData() {
+            if (!playerDocRef) return;
+            const dataToSave = {
+                name: elements.charNameInput.value,
+                health: parseInt(elements.healthBar.value), maxHealth: parseInt(elements.healthBar.max),
+                strength: parseInt(elements.strengthInput.value), dexterity: parseInt(elements.dexterityInput.value),
+                constitution: parseInt(elements.constitutionInput.value), intelligence: parseInt(elements.intelligenceInput.value),
+                perception: parseInt(elements.perceptionInput.value),
+                notes: elements.notesTextarea.value,
+                inventory: localInventory,
+                characterImage: elements.characterImage.querySelector('img')?.src || ''
+            };
+            playerDocRef.update(dataToSave).catch(error => console.error("Erro ao salvar dados: ", error));
+        }
+
+        // --- LÓGICA DO INVENTÁRIO ---
+        function renderInventory() {
+            elements.inventoryGrid.innerHTML = '';
+            for (let i = 0; i < 8; i++) {
+                const item = localInventory[i];
+                const slot = document.createElement('div');
+                slot.className = 'inventory-slot';
+                if (item) {
+                    slot.style.backgroundImage = `url('${item.image || 'https://i.imgur.com/qK4EeEa.png'}')`;
+                    if (item.showQuantity) {
+                        slot.innerHTML = `<div class="item-quantity">${item.quantity}</div>`;
                     }
-                    slot.addEventListener('click', () => handleSlotClick(i));
-                    elements.inventoryGrid.appendChild(slot);
                 }
+                slot.addEventListener('click', () => handleSlotClick(i));
+                elements.inventoryGrid.appendChild(slot);
             }
+        }
 
-            function handleSlotClick(index) {
-                if (localInventory[index]) {
-                    selectItem(index);
-                } else {
-                    const fileInput = document.createElement('input');
-                    fileInput.type = 'file';
-                    fileInput.accept = 'image/*';
-                    fileInput.onchange = e => {
-                        if (!e.target.files[0]) return;
-                        const reader = new FileReader();
-                        reader.onload = event => {
-                            const itemData = parseFileName(e.target.files[0].name);
-                            itemData.image = event.target.result;
-                            localInventory[index] = itemData;
-                            saveData();
-                        };
-                        reader.readAsDataURL(e.target.files[0]);
-                    };
-                    fileInput.click();
-                }
-            }
-
-            function selectItem(index) {
-                document.querySelectorAll('.inventory-slot.selected').forEach(s => s.classList.remove('selected'));
-                elements.inventoryGrid.children[index].classList.add('selected');
-
-                const item = localInventory[index];
-                elements.selectedItemDisplay.textContent = item.name;
-                elements.itemDescription.innerHTML = `<p>${item.description}</p><p><strong>Tipo:</strong> ${item.type}</p>`;
-                if (item.type === 'weapon') elements.equippedWeapon.innerHTML = `Arma: ${item.name}`;
-            }
-
-            function parseFileName(filename) {
-                const baseName = filename.replace(/\.[^/.]+$/, "");
-                const parts = baseName.split(' - ');
-                return { name: parts[0] || "Item", description: parts[1] || "Sem descrição", type: parts[2] || "misc", quantity: parseInt(parts[3]) || 1, showQuantity: ["weapon", "ammo", "healing"].includes(parts[2]), image: '' };
-            }
-
-            function handleItemReceived(item) {
-                const emptySlotIndex = localInventory.findIndex(slot => slot === null);
-                if (emptySlotIndex !== -1) {
-                    alert(`Você recebeu o item: ${item.name}!`);
-                    campaignDocRef.collection('items').doc(item.id).get().then(doc => {
-                        if (doc.exists) {
-                            localInventory[emptySlotIndex] = { ...doc.data(), ...item };
-                            saveData();
-                        }
-                    });
-                } else {
-                    alert(`Você recebeu ${item.name}, mas seu inventário está cheio!`);
-                }
-            }
-
-            // --- EVENT LISTENERS PARA AÇÕES DO JOGADOR ---
-            [elements.charNameInput, elements.strengthInput, elements.dexterityInput, elements.constitutionInput, elements.intelligenceInput, elements.perceptionInput].forEach(input => {
-                input.addEventListener('change', () => {
-                    updateCalculatedStats();
-                    saveData();
-                });
-            });
-
-            elements.increaseHealthBtn.addEventListener('click', () => adjustHealth(1));
-            elements.decreaseHealthBtn.addEventListener('click', () => adjustHealth(-1));
-            function adjustHealth(amount) {
-                let newHealth = parseInt(elements.healthBar.value) + amount;
-                newHealth = Math.max(0, Math.min(newHealth, elements.healthBar.max));
-                elements.healthBar.value = newHealth;
-                updateCalculatedStats();
-                saveData();
-            }
-
-            elements.characterImage.addEventListener('click', () => elements.imageUpload.click());
-            elements.imageUpload.addEventListener('change', e => {
-                if (e.target.files[0]) {
+        function handleSlotClick(index) {
+            if (localInventory[index]) {
+                selectItem(index);
+            } else {
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = 'image/*';
+                fileInput.onchange = e => {
+                    if (!e.target.files[0]) return;
                     const reader = new FileReader();
                     reader.onload = event => {
-                        elements.characterImage.innerHTML = `<img src="${event.target.result}" alt="Personagem">`;
+                        const itemData = parseFileName(e.target.files[0].name);
+                        itemData.image = event.target.result;
+                        localInventory[index] = itemData;
                         saveData();
                     };
                     reader.readAsDataURL(e.target.files[0]);
-                }
-            });
-
-            // --- LÓGICA DOS MODAIS E OUTROS ---
-            elements.docsBtn.addEventListener('click', () => { elements.docsModal.style.display = 'block'; });
-            elements.saveNotesBtn.addEventListener('click', saveData);
-            elements.mapBtn.addEventListener('click', () => { loadMap(currentMapIndex); elements.mapModal.style.display = 'block'; });
-            elements.diceBtn.addEventListener('click', () => { elements.diceModal.style.display = 'block'; });
-            elements.audioToggle.addEventListener('click', toggleAudio);
-
-            function toggleAudio() {
-                if (elements.backgroundAudio.paused) {
-                    elements.backgroundAudio.play().catch(e => console.log("Playback falhou", e));
-                    elements.audioIcon.textContent = '🔊';
-                } else {
-                    elements.backgroundAudio.pause();
-                    elements.audioIcon.textContent = '🔇';
-                }
+                };
+                fileInput.click();
             }
+        }
 
-            function loadMap(index) {
-                const map = mansionMaps[index];
-                elements.mapImage.src = map.path;
-                elements.mapTitle.textContent = `Mansão - ${map.name}`;
-                elements.prevMapBtn.disabled = index === 0;
-                elements.nextMapBtn.disabled = index === mansionMaps.length - 1;
-            }
-            elements.prevMapBtn.addEventListener('click', () => { if (currentMapIndex > 0) { currentMapIndex--; loadMap(currentMapIndex); } });
-            elements.nextMapBtn.addEventListener('click', () => { if (currentMapIndex < mansionMaps.length - 1) { currentMapIndex++; loadMap(currentMapIndex); } });
+        function selectItem(index) {
+            document.querySelectorAll('.inventory-slot.selected').forEach(s => s.classList.remove('selected'));
+            elements.inventoryGrid.children[index].classList.add('selected');
 
-            document.querySelectorAll('.dice-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const sides = parseInt(btn.dataset.sides);
-                    const result = Math.floor(Math.random() * sides) + 1;
-                    elements.diceResultDiv.textContent = `Resultado d${sides}: ${result}`;
+            const item = localInventory[index];
+            elements.selectedItemDisplay.textContent = item.name;
+            elements.itemDescription.innerHTML = `<p>${item.description}</p><p><strong>Tipo:</strong> ${item.type}</p>`;
+            if (item.type === 'weapon') elements.equippedWeapon.innerHTML = `Arma: ${item.name}`;
+        }
+
+        function parseFileName(filename) {
+            const baseName = filename.replace(/\.[^/.]+$/, "");
+            const parts = baseName.split(' - ');
+            return { name: parts[0] || "Item", description: parts[1] || "Sem descrição", type: parts[2] || "misc", quantity: parseInt(parts[3]) || 1, showQuantity: ["weapon", "ammo", "healing"].includes(parts[2]), image: '' };
+        }
+
+        function handleItemReceived(item) {
+            const emptySlotIndex = localInventory.findIndex(slot => slot === null);
+            if (emptySlotIndex !== -1) {
+                alert(`Você recebeu o item: ${item.name}!`);
+                campaignDocRef.collection('items').doc(item.id).get().then(doc => {
+                    if (doc.exists) {
+                        localInventory[emptySlotIndex] = { ...doc.data(), ...item };
+                        saveData();
+                    }
                 });
-            });
-
-            document.querySelectorAll('.close-btn').forEach(btn => {
-                btn.onclick = () => {
-                    btn.closest('.modal').style.display = 'none';
-                    if (btn.closest('.modal').id === 'docs-modal') saveData();
-                }
-            });
-            window.onclick = (e) => {
-                if (e.target.classList.contains('modal')) {
-                    e.target.style.display = 'none';
-                    if (e.target.id === 'docs-modal') saveData();
-                }
+            } else {
+                alert(`Você recebeu ${item.name}, mas seu inventário está cheio!`);
             }
+        }
 
-            elements.backToCampaignsBtn.addEventListener('click', () => { window.location.href = 'campaign.html'; });
+        // --- EVENT LISTENERS PARA AÇÕES DO JOGADOR ---
+        [elements.charNameInput, elements.strengthInput, elements.dexterityInput, elements.constitutionInput, elements.intelligenceInput, elements.perceptionInput].forEach(input => {
+            input.addEventListener('change', () => {
+                updateCalculatedStats();
+                saveData();
+            });
         });
+
+        elements.increaseHealthBtn.addEventListener('click', () => adjustHealth(1));
+        elements.decreaseHealthBtn.addEventListener('click', () => adjustHealth(-1));
+        function adjustHealth(amount) {
+            let newHealth = parseInt(elements.healthBar.value) + amount;
+            newHealth = Math.max(0, Math.min(newHealth, elements.healthBar.max));
+            elements.healthBar.value = newHealth;
+            updateCalculatedStats();
+            saveData();
+        }
+
+        elements.characterImage.addEventListener('click', () => elements.imageUpload.click());
+        elements.imageUpload.addEventListener('change', e => {
+            if (e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = event => {
+                    elements.characterImage.innerHTML = `<img src="${event.target.result}" alt="Personagem">`;
+                    saveData();
+                };
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+
+        // --- LÓGICA DOS MODAIS E OUTROS ---
+        elements.docsBtn.addEventListener('click', () => { elements.docsModal.style.display = 'block'; });
+        elements.saveNotesBtn.addEventListener('click', saveData);
+        elements.mapBtn.addEventListener('click', () => { loadMap(currentMapIndex); elements.mapModal.style.display = 'block'; });
+        elements.diceBtn.addEventListener('click', () => { elements.diceModal.style.display = 'block'; });
+        elements.audioToggle.addEventListener('click', toggleAudio);
+
+        function toggleAudio() {
+            if (elements.backgroundAudio.paused) {
+                elements.backgroundAudio.play().catch(e => console.log("Playback falhou", e));
+                elements.audioIcon.textContent = '🔊';
+            } else {
+                elements.backgroundAudio.pause();
+                elements.audioIcon.textContent = '🔇';
+            }
+        }
+
+        function loadMap(index) {
+            const map = mansionMaps[index];
+            elements.mapImage.src = map.path;
+            elements.mapTitle.textContent = `Mansão - ${map.name}`;
+            elements.prevMapBtn.disabled = index === 0;
+            elements.nextMapBtn.disabled = index === mansionMaps.length - 1;
+        }
+        elements.prevMapBtn.addEventListener('click', () => { if (currentMapIndex > 0) { currentMapIndex--; loadMap(currentMapIndex); } });
+        elements.nextMapBtn.addEventListener('click', () => { if (currentMapIndex < mansionMaps.length - 1) { currentMapIndex++; loadMap(currentMapIndex); } });
+
+        document.querySelectorAll('.dice-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const sides = parseInt(btn.dataset.sides);
+                const result = Math.floor(Math.random() * sides) + 1;
+                elements.diceResultDiv.textContent = `Resultado d${sides}: ${result}`;
+            });
+        });
+
+        document.querySelectorAll('.close-btn').forEach(btn => {
+            btn.onclick = () => {
+                btn.closest('.modal').style.display = 'none';
+                if (btn.closest('.modal').id === 'docs-modal') saveData();
+            }
+        });
+        window.onclick = (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.style.display = 'none';
+                if (e.target.id === 'docs-modal') saveData();
+            }
+        }
+
+        elements.backToCampaignsBtn.addEventListener('click', () => { window.location.href = 'campaign.html'; 
+        });
+        
     </script>
 </body>
 
