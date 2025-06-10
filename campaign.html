@@ -1,399 +1,416 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Campanhas - Resident Evil RPG</title>
-        <link rel="icon" href="imgs/icon.png" type="image/png">
-        <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&display=swap" rel="stylesheet">
-        
-        <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
 
-        <style>
-            /* Reset básico para remover margens padrão */
-            html, body {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campanhas - Resident Evil RPG</title>
+    <link rel="icon" href="imgs/icon.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        /* Reset básico para remover margens padrão */
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Estilos base do tema Resident Evil (do campaign.css) */
+        .campaign-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at center, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.95) 100%),
+                /* Link da imagem de fundo corrigido para funcionar online */
+                url('https://i.imgur.com/3Yd2LVd.jpeg') center/cover fixed no-repeat;
+            color: #e0e0e0;
+            padding: 2rem;
+            font-family: 'IM Fell English SC', serif;
+        }
+
+        .campaign-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        .campaign-header h1 {
+            color: #c0a050;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px #000, 0 0 10px rgba(192, 160, 80, 0.3);
+            letter-spacing: 3px;
+            margin-bottom: 0.5rem;
+        }
+
+        .campaign-header p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.1rem;
+        }
+
+        .campaign-box {
+            background-color: rgba(30, 30, 30, 0.9);
+            border: 1px solid #c0a050;
+            border-radius: 4px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8), 0 0 40px rgba(192, 160, 80, 0.1);
+            position: relative;
+            overflow: hidden;
+            animation: slideUp 0.8s ease-in-out;
+        }
+
+        .campaign-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #c0a050, transparent);
+        }
+
+        .campaign-umbrella {
+            font-size: 3rem;
+            text-align: center;
+            color: #c0a050;
+            margin-bottom: 1rem;
+            animation: pulse 2s infinite;
+        }
+
+        .campaign-options {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .option-card {
+            background-color: rgba(42, 42, 42, 0.7);
+            border: 1px solid rgba(192, 160, 80, 0.3);
+            border-radius: 4px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .option-card:hover {
+            border-color: #c0a050;
+            box-shadow: 0 0 15px rgba(192, 160, 80, 0.2);
+        }
+
+        .option-card h2 {
+            color: #c0a050;
+            margin-bottom: 1rem;
+            font-weight: normal;
+            font-size: 1.3rem;
+            border-bottom: 1px solid rgba(192, 160, 80, 0.3);
+            padding-bottom: 0.5rem;
+        }
+
+        .option-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .option-content p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+
+        .campaign-btn {
+            padding: 0.8rem;
+            background-color: rgba(74, 74, 74, 0.8);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-family: 'IM Fell English SC', serif;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .campaign-btn:hover {
+            background-color: #c0a050;
+            color: black;
+        }
+
+        .option-divider {
+            display: flex;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .option-divider::before,
+        .option-divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid rgba(192, 160, 80, 0.3);
+        }
+
+        .option-divider span {
+            padding: 0 10px;
+        }
+
+        .campaign-input {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .campaign-input input {
+            flex: 1;
+            padding: 0.8rem;
+            background-color: rgba(51, 51, 51, 0.8);
+            border: 1px solid rgba(85, 85, 85, 0.5);
+            color: white;
+            border-radius: 4px;
+            font-family: 'IM Fell English SC', serif;
+        }
+
+        .recent-campaigns {
+            margin-top: 2rem;
+        }
+
+        .recent-campaigns h3 {
+            color: #c0a050;
+            margin-bottom: 1rem;
+            font-weight: normal;
+            font-size: 1.1rem;
+        }
+
+        .campaign-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .campaign-item {
+            background-color: rgba(42, 42, 42, 0.7);
+            border: 1px solid rgba(192, 160, 80, 0.3);
+            border-radius: 4px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .campaign-item:hover {
+            border-color: #c0a050;
+            transform: translateY(-3px);
+        }
+
+        .campaign-item h4 {
+            color: #c0a050;
+            margin-bottom: 0.5rem;
+        }
+
+        .campaign-item p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .empty-campaigns {
+            text-align: center;
+            padding: 1rem;
+            color: rgba(255, 255, 255, 0.5);
+            font-style: italic;
+            grid-column: 1 / -1;
+        }
+
+        .campaign-footer {
+            margin-top: 2rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .campaign-footer p {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            color: #c0a050;
+            cursor: pointer;
+            font-family: 'IM Fell English SC', serif;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            text-decoration: underline;
+        }
+
+        /* Modal Styles */
+        .campaign-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal-content {
+            background-color: rgba(30, 30, 30, 0.95);
+            margin: 5% auto;
+            padding: 2rem;
+            border: 1px solid #c0a050;
+            border-radius: 4px;
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+            animation: slideDown 0.3s;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 0.5rem;
+            right: 1rem;
+            color: #c0a050;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            line-height: 1;
+        }
+
+        .close-modal:hover {
+            color: white;
+            transform: rotate(90deg);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #c0a050;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.8rem;
+            background-color: rgba(51, 51, 51, 0.8);
+            border: 1px solid rgba(85, 85, 85, 0.5);
+            color: white;
+            border-radius: 4px;
+            font-family: 'IM Fell English SC', serif;
+            box-sizing: border-box;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .modal-btn {
+            width: 100%;
+            padding: 0.8rem;
+            background-color: #c0a050;
+            color: black;
+            border: none;
+            border-radius: 4px;
+            font-family: 'IM Fell English SC', serif;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        .modal-btn:hover {
+            background-color: #d4b468;
+        }
+
+        /* Animações */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
             }
 
-            /* Estilos base do tema Resident Evil (do campaign.css) */
-            .campaign-container {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                min-height: 100vh;
-                background: 
-                    radial-gradient(circle at center, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.95) 100%),
-                    /* Link da imagem de fundo corrigido para funcionar online */
-                    url('https://i.imgur.com/3Yd2LVd.jpeg') center/cover fixed no-repeat;
-                color: #e0e0e0;
-                padding: 2rem;
-                font-family: 'IM Fell English SC', serif;
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
             }
 
-            .campaign-header {
-                text-align: center;
-                margin-bottom: 2rem;
-                animation: fadeIn 1s ease-in-out;
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .campaign-box {
+                padding: 1.5rem;
             }
 
             .campaign-header h1 {
-                color: #c0a050;
-                font-size: 2.5rem;
-                text-shadow: 2px 2px 4px #000, 0 0 10px rgba(192, 160, 80, 0.3);
-                letter-spacing: 3px;
-                margin-bottom: 0.5rem;
-            }
-
-            .campaign-header p {
-                color: rgba(255, 255, 255, 0.7);
-                font-size: 1.1rem;
-            }
-
-            .campaign-box {
-                background-color: rgba(30, 30, 30, 0.9);
-                border: 1px solid #c0a050;
-                border-radius: 4px;
-                padding: 2rem;
-                width: 100%;
-                max-width: 800px;
-                box-shadow: 0 0 20px rgba(0, 0, 0, 0.8), 0 0 40px rgba(192, 160, 80, 0.1);
-                position: relative;
-                overflow: hidden;
-                animation: slideUp 0.8s ease-in-out;
-            }
-
-            .campaign-box::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                height: 3px;
-                background: linear-gradient(90deg, transparent, #c0a050, transparent);
-            }
-
-            .campaign-umbrella {
-                font-size: 3rem;
-                text-align: center;
-                color: #c0a050;
-                margin-bottom: 1rem;
-                animation: pulse 2s infinite;
+                font-size: 2rem;
             }
 
             .campaign-options {
-                display: flex;
                 flex-direction: column;
-                gap: 1.5rem;
-                margin-bottom: 2rem;
-            }
-
-            .option-card {
-                background-color: rgba(42, 42, 42, 0.7);
-                border: 1px solid rgba(192, 160, 80, 0.3);
-                border-radius: 4px;
-                padding: 1.5rem;
-                transition: all 0.3s ease;
-            }
-
-            .option-card:hover {
-                border-color: #c0a050;
-                box-shadow: 0 0 15px rgba(192, 160, 80, 0.2);
-            }
-
-            .option-card h2 {
-                color: #c0a050;
-                margin-bottom: 1rem;
-                font-weight: normal;
-                font-size: 1.3rem;
-                border-bottom: 1px solid rgba(192, 160, 80, 0.3);
-                padding-bottom: 0.5rem;
-            }
-
-            .option-content {
-                display: flex;
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            .option-content p {
-                color: rgba(255, 255, 255, 0.7);
-                font-size: 0.9rem;
-            }
-
-            .campaign-btn {
-                padding: 0.8rem;
-                background-color: rgba(74, 74, 74, 0.8);
-                color: white;
-                border: none;
-                border-radius: 4px;
-                font-family: 'IM Fell English SC', serif;
-                font-size: 1rem;
-                cursor: pointer;
-                transition: all 0.3s ease;
-            }
-
-            .campaign-btn:hover {
-                background-color: #c0a050;
-                color: black;
-            }
-
-            .option-divider {
-                display: flex;
-                align-items: center;
-                color: rgba(255, 255, 255, 0.5);
-            }
-
-            .option-divider::before,
-            .option-divider::after {
-                content: '';
-                flex: 1;
-                border-bottom: 1px solid rgba(192, 160, 80, 0.3);
-            }
-
-            .option-divider span {
-                padding: 0 10px;
             }
 
             .campaign-input {
-                display: flex;
-                gap: 0.5rem;
-            }
-
-            .campaign-input input {
-                flex: 1;
-                padding: 0.8rem;
-                background-color: rgba(51, 51, 51, 0.8);
-                border: 1px solid rgba(85, 85, 85, 0.5);
-                color: white;
-                border-radius: 4px;
-                font-family: 'IM Fell English SC', serif;
-            }
-
-            .recent-campaigns {
-                margin-top: 2rem;
-            }
-
-            .recent-campaigns h3 {
-                color: #c0a050;
-                margin-bottom: 1rem;
-                font-weight: normal;
-                font-size: 1.1rem;
-            }
-
-            .campaign-list {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-                gap: 1rem;
-            }
-
-            .campaign-item {
-                background-color: rgba(42, 42, 42, 0.7);
-                border: 1px solid rgba(192, 160, 80, 0.3);
-                border-radius: 4px;
-                padding: 1rem;
-                cursor: pointer;
-                transition: all 0.3s ease;
-            }
-
-            .campaign-item:hover {
-                border-color: #c0a050;
-                transform: translateY(-3px);
-            }
-
-            .campaign-item h4 {
-                color: #c0a050;
-                margin-bottom: 0.5rem;
-            }
-
-            .campaign-item p {
-                color: rgba(255, 255, 255, 0.6);
-                font-size: 0.8rem;
-                margin-bottom: 0.3rem;
-            }
-
-            .empty-campaigns {
-                text-align: center;
-                padding: 1rem;
-                color: rgba(255, 255, 255, 0.5);
-                font-style: italic;
-                grid-column: 1 / -1;
-            }
-
-            .campaign-footer {
-                margin-top: 2rem;
-                text-align: center;
-                display: flex;
                 flex-direction: column;
-                gap: 0.5rem;
             }
-
-            .campaign-footer p {
-                font-size: 0.8rem;
-                color: rgba(255, 255, 255, 0.5);
-            }
-
-            .logout-btn {
-                background: none;
-                border: none;
-                color: #c0a050;
-                cursor: pointer;
-                font-family: 'IM Fell English SC', serif;
-                font-size: 0.9rem;
-                transition: all 0.3s ease;
-            }
-
-            .logout-btn:hover {
-                text-decoration: underline;
-            }
-
-            /* Modal Styles */
-            .campaign-modal {
-                display: none;
-                position: fixed;
-                z-index: 1000;
-                left: 0;
-                top: 0;
-                width: 100%;
-                height: 100%;
-                background-color: rgba(0, 0, 0, 0.8);
-                animation: fadeIn 0.3s;
-            }
-
-            .modal-content {
-                background-color: rgba(30, 30, 30, 0.95);
-                margin: 5% auto;
-                padding: 2rem;
-                border: 1px solid #c0a050;
-                border-radius: 4px;
-                width: 90%;
-                max-width: 500px;
-                position: relative;
-                box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
-                animation: slideDown 0.3s;
-            }
-
-            .close-modal {
-                position: absolute;
-                top: 0.5rem;
-                right: 1rem;
-                color: #c0a050;
-                font-size: 2rem;
-                font-weight: bold;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                line-height: 1;
-            }
-
-            .close-modal:hover {
-                color: white;
-                transform: rotate(90deg);
-            }
-
-            .form-group {
-                margin-bottom: 1rem;
-            }
-
-            .form-group label {
-                display: block;
-                margin-bottom: 0.5rem;
-                color: #c0a050;
-            }
-
-            .form-group input,
-            .form-group select,
-            .form-group textarea {
-                width: 100%;
-                padding: 0.8rem;
-                background-color: rgba(51, 51, 51, 0.8);
-                border: 1px solid rgba(85, 85, 85, 0.5);
-                color: white;
-                border-radius: 4px;
-                font-family: 'IM Fell English SC', serif;
-                box-sizing: border-box;
-            }
-
-            .form-group textarea {
-                min-height: 100px;
-                resize: vertical;
-            }
-
-            .modal-btn {
-                width: 100%;
-                padding: 0.8rem;
-                background-color: #c0a050;
-                color: black;
-                border: none;
-                border-radius: 4px;
-                font-family: 'IM Fell English SC', serif;
-                font-size: 1rem;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                margin-top: 1rem;
-            }
-
-            .modal-btn:hover {
-                background-color: #d4b468;
-            }
-
-            /* Animações */
-            @keyframes fadeIn {
-                from { opacity: 0; }
-                to { opacity: 1; }
-            }
-
-            @keyframes slideUp {
-                from { 
-                    transform: translateY(30px);
-                    opacity: 0;
-                }
-                to { 
-                    transform: translateY(0);
-                    opacity: 1;
-                }
-            }
-
-            @keyframes slideDown {
-                from { 
-                    transform: translateY(-50px);
-                    opacity: 0;
-                }
-                to { 
-                    transform: translateY(0);
-                    opacity: 1;
-                }
-            }
-
-            @keyframes pulse {
-                0% { transform: scale(1); }
-                50% { transform: scale(1.05); }
-                100% { transform: scale(1); }
-            }
-
-            /* Responsividade */
-            @media (max-width: 768px) {
-                .campaign-box {
-                    padding: 1.5rem;
-                }
-                
-                .campaign-header h1 {
-                    font-size: 2rem;
-                }
-                
-                .campaign-options {
-                    flex-direction: column;
-                }
-                
-                .campaign-input {
-                    flex-direction: column;
-                }
-            }
-        </style>
-    </head>
+        }
+    </style>
+</head>
 
 <body>
     <div class="campaign-container">
@@ -404,7 +421,7 @@
 
         <div class="campaign-box">
             <div class="campaign-umbrella">☣</div>
-            
+
             <div class="campaign-options">
                 <div class="option-card" id="masterOption">
                     <h2>Sou o Mestre</h2>
@@ -429,7 +446,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="recent-campaigns">
                 <h3>Suas Campanhas Recentes</h3>
                 <div id="campaignList" class="campaign-list">
@@ -439,7 +456,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="campaign-footer">
             <button id="logoutBtn" class="logout-btn">Sair</button>
             <p>Sistema desenvolvido por João Piel Neto</p>
@@ -450,12 +467,12 @@
         <div class="modal-content">
             <span class="close-modal">&times;</span>
             <h2>Criar Nova Campanha</h2>
-            
+
             <div class="form-group">
                 <label for="campaignName">Nome da Campanha:</label>
                 <input type="text" id="campaignName" placeholder="Ex.: A Maldição de Arklay" required>
             </div>
-            
+
             <div class="form-group">
                 <label for="campaignType">Tipo de Jogo:</label>
                 <select id="campaignType">
@@ -465,23 +482,23 @@
                     <option value="custom">Personalizado</option>
                 </select>
             </div>
-            
+
             <div class="form-group">
                 <label for="initialNotes">Anotações Iniciais:</label>
                 <textarea id="initialNotes" placeholder="Descreva a premissa básica da campanha..."></textarea>
             </div>
-            
+
             <div class="form-group">
                 <label for="playerCount">Número Máx. de Jogadores:</label>
                 <input type="number" id="playerCount" min="1" max="8" value="4">
             </div>
-            
+
             <button id="confirmCreateBtn" class="modal-btn">Criar Campanha</button>
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Configuração do Firebase
             const firebaseConfig = {
                 apiKey: "AIzaSyAKUKEyV3iS8QCQpdjtHhDdbiySy2e9RZY",
@@ -503,7 +520,7 @@
             const campaignCodeInput = document.getElementById('campaignCode');
             const logoutBtn = document.getElementById('logoutBtn');
             const campaignList = document.getElementById('campaignList');
-            
+
             // Elementos do modal
             const createCampaignModal = document.getElementById('createCampaignModal');
             const closeModal = document.querySelector('.close-modal');
@@ -529,7 +546,7 @@
             // --> DESTAQUE <-- ESTA FUNÇÃO CARREGA AS CAMPANHAS DO USUÁRIO LOGADO
             function loadUserCampaigns(userId) {
                 campaignList.innerHTML = '<div class="empty-campaigns"><p>Carregando campanhas...</p></div>';
-                
+
                 // A consulta 'where' busca em todas as campanhas nos quais o ID do usuário está na lista de 'players'
                 db.collection('campaigns')
                     .where('players', 'array-contains', userId)
@@ -537,7 +554,7 @@
                     .get()
                     .then((querySnapshot) => {
                         campaignList.innerHTML = '';
-                        
+
                         if (querySnapshot.empty) {
                             campaignList.innerHTML = `
                                 <div class="empty-campaigns">
@@ -546,7 +563,7 @@
                             `;
                             return;
                         }
-                        
+
                         querySnapshot.forEach((doc) => {
                             const campaign = doc.data();
                             // --> DESTAQUE <-- Chama a função que vai exibir o card da campanha na tela
@@ -565,10 +582,10 @@
             function renderCampaignItem(campaignId, campaign, userId) {
                 const campaignItem = document.createElement('div');
                 campaignItem.className = 'campaign-item';
-                
+
                 // A verificação é feita aqui: se o 'masterId' da campanha é igual ao seu 'userId'
                 const isMaster = campaign.masterId === userId;
-                
+
                 campaignItem.innerHTML = `
                     <h4>${campaign.name}</h4>
                     <p>Tipo: ${getCampaignTypeName(campaign.type)}</p>
@@ -576,15 +593,15 @@
                     <p>${isMaster ? '<b>(Mestre)</b>' : '(Jogador)'}</p>
                     <p>Código: ${campaign.code}</p>
                 `;
-                
+
                 // Adiciona o evento de clique para entrar na campanha
                 campaignItem.addEventListener('click', () => {
                     enterCampaign(campaignId, isMaster);
                 });
-                
+
                 campaignList.appendChild(campaignItem);
             }
-            
+
             function getCampaignTypeName(type) {
                 const types = {
                     'survival': 'Sobrevivência',
@@ -594,132 +611,68 @@
                 };
                 return types[type] || type;
             }
-            
+
             function enterCampaign(campaignId, isMaster) {
-                if (isMaster) {
-                    window.location.href = `master.html?campaign=${campaignId}`;
-                } else {
-                    window.location.href = `invent.html?campaign=${campaignId}`;
-                }
+                window.location.href = isMaster ? `master.html?campaign=${campaignId}` : `invent.html?campaign=${campaignId}`;
             }
-            
-            // Abrir e fechar o modal de criação
-            createCampaignBtn.addEventListener('click', () => {
-                createCampaignModal.style.display = 'block';
-            });
-            
-            closeModal.addEventListener('click', () => {
-                createCampaignModal.style.display = 'none';
-            });
-            
-            window.addEventListener('click', (event) => {
-                if (event.target === createCampaignModal) {
-                    createCampaignModal.style.display = 'none';
-                }
-            });
-            
-            // Confirmar criação de campanha
+
+            createCampaignBtn.addEventListener('click', () => { createCampaignModal.style.display = 'block'; });
+            closeModal.addEventListener('click', () => { createCampaignModal.style.display = 'none'; });
+            window.addEventListener('click', (event) => { if (event.target === createCampaignModal) createCampaignModal.style.display = 'none'; });
+
             confirmCreateBtn.addEventListener('click', () => {
                 const user = auth.currentUser;
-                if (!user) return;
-
-                const campaignName = campaignNameInput.value.trim();
-                const campaignType = campaignTypeSelect.value;
-                const initialNotes = initialNotesTextarea.value.trim();
-                const playerCount = parseInt(playerCountInput.value);
+                if (!user || !campaignNameInput.value.trim()) return alert('Dê um nome à campanha.');
                 
-                if (!campaignName) {
-                    alert('Por favor, dê um nome à sua campanha.');
-                    return;
-                }
-
-                const code = generateCampaignCode();
-                
+                const code = Array(6).fill(0).map(() => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'.charAt(Math.floor(Math.random() * 32))).join('');
                 const newCampaign = {
-                    name: campaignName,
-                    type: campaignType,
-                    code: code,
-                    masterId: user.uid,
-                    masterName: user.displayName || user.email,
-                    players: [user.uid], // O mestre também é um jogador na lista
-                    notes: initialNotes,
-                    maxPlayers: playerCount,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    active: true
+                    name: campaignNameInput.value.trim(), type: campaignTypeSelect.value, code,
+                    masterId: user.uid, masterName: user.displayName || user.email,
+                    players: [user.uid], notes: initialNotesTextarea.value.trim(),
+                    maxPlayers: parseInt(playerCountInput.value), createdAt: firebase.firestore.FieldValue.serverTimestamp(), active: true
                 };
-
-                db.collection('campaigns').add(newCampaign)
-                    .then((docRef) => {
-                        window.location.href = `master.html?campaign=${docRef.id}`;
-                    })
-                    .catch((error) => {
-                        console.error("Erro ao criar campanha:", error);
-                        alert("Erro ao criar campanha: " + error.message);
-                    });
+                db.collection('campaigns').add(newCampaign).then(docRef => window.location.href = `master.html?campaign=${docRef.id}`);
             });
-            
-            function generateCampaignCode() {
-                const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-                let result = '';
-                for (let i = 0; i < 6; i++) {
-                    result += chars.charAt(Math.floor(Math.random() * chars.length));
-                }
-                return result;
-            }
-            
-            // Entrar como jogador com código
+
             joinCampaignBtn.addEventListener('click', () => {
                 const code = campaignCodeInput.value.trim().toUpperCase();
-                
-                if (!code) {
-                    alert('Por favor, insira o código da campanha.');
-                    return;
-                }
-                
-                db.collection('campaigns')
-                    .where('code', '==', code)
-                    .limit(1)
-                    .get()
+                const user = auth.currentUser;
+                if (!code || !user) return alert('Insira o código da campanha.');
+
+                db.collection('campaigns').where('code', '==', code).limit(1).get()
                     .then((querySnapshot) => {
-                        if (querySnapshot.empty) {
-                            alert('Campanha não encontrada. Verifique o código.');
-                            return;
-                        }
+                        if (querySnapshot.empty) return alert('Campanha não encontrada.');
                         
-                        const user = auth.currentUser;
-                        if (!user) return;
+                        const doc = querySnapshot.docs[0];
+                        const campaign = doc.data();
+                        const campaignId = doc.id;
                         
-                        querySnapshot.forEach(async (doc) => {
-                            const campaign = doc.data();
-                            const campaignId = doc.id;
-                            
-                            // Verifica se o jogador já está na campanha
-                            if (campaign.players.includes(user.uid)) {
-                                enterCampaign(campaignId, campaign.masterId === user.uid);
-                                return;
-                            }
-                            
-                            // Verifica se há vagas
-                            if (campaign.players.length >= campaign.maxPlayers) {
-                                alert('Esta campanha já está cheia.');
-                                return;
-                            }
-                            
-                            // Adiciona jogador à campanha
-                            await db.collection('campaigns').doc(campaignId).update({
-                                players: firebase.firestore.FieldValue.arrayUnion(user.uid)
-                            });
-                            
-                            // Redireciona para a página apropriada
-                            enterCampaign(campaignId, false); // Acabou de entrar, então nunca será o mestre
-                        });
+                        if (campaign.players.includes(user.uid)) return enterCampaign(campaignId, campaign.masterId === user.uid);
+                        if (campaign.players.length >= campaign.maxPlayers) return alert('Esta campanha já está cheia.');
+
+                        const campaignRef = db.collection('campaigns').doc(campaignId);
+                        const playerDocRef = campaignRef.collection('players').doc(user.uid);
+                        const initialPlayerData = {
+                            name: user.displayName || "Sobrevivente", health: 100, maxHealth: 100,
+                            strength: 10, dexterity: 10, constitution: 10, intelligence: 10, perception: 10,
+                            notes: "", inventory: Array(8).fill(null), characterImage: "", type: 'player',
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        };
+
+                        // Transação para garantir consistência
+                        db.runTransaction(async (transaction) => {
+                            transaction.set(playerDocRef, initialPlayerData);
+                            transaction.update(campaignRef, { players: firebase.firestore.FieldValue.arrayUnion(user.uid) });
+                        }).then(() => {
+                            enterCampaign(campaignId, false);
+                        }).catch(error => console.error("Erro ao entrar na campanha:", error));
                     })
-                    .catch((error) => {
-                        console.error("Erro ao buscar campanha:", error);
-                        alert("Erro ao entrar na campanha: " + error.message);
-                    });
+                    .catch(error => console.error("Erro ao buscar campanha:", error));
             });
-            
+
+            logoutBtn.addEventListener('click', () => auth.signOut().then(() => window.location.href = 'index.html'));
+        });
+
             // Logout
             logoutBtn.addEventListener('click', () => {
                 auth.signOut()
@@ -731,7 +684,7 @@
                         alert("Erro ao sair: " + error.message);
                     });
             });
-        });
     </script>
 </body>
+
 </html>
