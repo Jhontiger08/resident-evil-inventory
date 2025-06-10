@@ -13,10 +13,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
 </head>
-
 <body>
     <div id="notification-container"></div>
-
     <div class="master-container">
         <header class="master-header">
             <div class="campaign-info">
@@ -50,26 +48,16 @@
                     <button class="tab-btn" data-tab="dice">Dados</button>
                 </div>
                 
-                <div class="tab-content active" id="notesTab">
-                    <textarea id="masterNotes" placeholder="Anotações privadas do mestre..."></textarea>
-                </div>
+                <div class="tab-content active" id="notesTab"><textarea id="masterNotes" placeholder="Anotações privadas do mestre..."></textarea></div>
                 
                 <div class="tab-content" id="itemsTab">
-                    <div class="controls-bar">
-                        <button id="addItemBtn">Criar Novo Item</button>
-                    </div>
-                    <div class="card-list" id="masterItemList">
-                         <div class="empty-placeholder">Nenhum item criado.</div>
-                    </div>
+                    <div class="controls-bar"><button id="addItemBtn">Criar Novo Item</button></div>
+                    <div class="card-list" id="masterItemList"><div class="empty-placeholder">Nenhum item criado.</div></div>
                 </div>
                 
                 <div class="tab-content" id="enemiesTab">
-                    <div class="controls-bar">
-                        <button id="addEnemyBtn">Adicionar Inimigo</button>
-                    </div>
-                    <div class="card-list" id="enemyList">
-                        <div class="empty-placeholder">Nenhum inimigo adicionado.</div>
-                    </div>
+                    <div class="controls-bar"><button id="addEnemyBtn">Adicionar Inimigo</button></div>
+                    <div class="card-list" id="enemyList"><div class="empty-placeholder">Nenhum inimigo adicionado.</div></div>
                 </div>
                 
                 <div class="tab-content" id="mapTab">
@@ -88,9 +76,7 @@
                             <img src="" alt="Selecione um mapa na lista acima" id="masterMap">
                             <canvas id="fogOfWarCanvas"></canvas>
                         </div>
-                        <div class="map-tools">
-                             <button id="clearMapBtn">Limpar Revelações do Mapa</button>
-                        </div>
+                        <div class="map-tools"><button id="clearMapBtn">Limpar Revelações do Mapa</button></div>
                     </div>
                 </div>
                 
@@ -112,23 +98,17 @@
         </main>
 
         <footer class="master-chat">
-            <div class="chat-header">
-                <h2>Chat da Campanha</h2>
-                <button id="toggleChatBtn" title="Minimizar/Maximizar Chat">_</button>
-            </div>
+            <div class="chat-header"><h2>Chat da Campanha</h2><button id="toggleChatBtn" title="Minimizar/Maximizar Chat">_</button></div>
             <div class="chat-messages" id="masterChatMessages"></div>
             <div class="chat-input">
-                <input type="text" id="masterChatInput" placeholder="Digite uma mensagem e pressione Enter...">
-                <button id="sendMasterMsgBtn" class="chat-send-btn">Enviar</button>
+                <input type="text" id="masterChatInput" placeholder="Digite uma mensagem e pressione Enter..."><button id="sendMasterMsgBtn" class="chat-send-btn">Enviar</button>
             </div>
         </footer>
     </div>
 
     <div id="confirmModal" class="master-modal"><div class="modal-content"><h2 id="confirmModalTitle">Confirmar</h2><p id="confirmModalText"></p><div class="modal-actions"><button id="confirmBtn" class="modal-btn confirm">Confirmar</button><button id="cancelBtn" class="modal-btn cancel">Cancelar</button></div></div></div>
     <div id="playerActionModal" class="master-modal"><div class="modal-content"><span class="close-modal" title="Fechar">&times;</span><h2 id="playerActionTitle">Ações</h2><input type="hidden" id="playerActionTargetId"><div class="form-section"><h3><i class="fas fa-heartbeat"></i> Vida</h3><div class="health-control"><input type="number" id="playerActionHealth" class="health-input"><span> / </span><input type="number" id="playerActionMaxHealth" class="health-input"><button id="playerActionUpdateHealthBtn" class="small-btn">Atualizar</button></div></div><div class="form-section"><h3><i class="fas fa-briefcase"></i> Enviar Item</h3><div class="item-send"><select id="playerActionItemSelect"></select><button id="playerActionSendItemBtn" class="small-btn">Enviar</button></div></div></div></div>
-    
     <div id="itemModal" class="master-modal"><div class="modal-content"><span class="close-modal">&times;</span><h2 id="itemModalTitle"></h2><form id="itemForm"><input type="hidden" id="itemId"><div class="form-group"><label for="itemName">Nome:</label><input type="text" id="itemName" required></div><div class="form-group"><label for="itemImage">URL da Imagem:</label><input type="url" id="itemImage" placeholder="https://imgur.com/link_da_imagem.png"></div><div class="form-group"><label for="itemType">Tipo:</label><select id="itemType" required><option value="misc">Diversos</option><option value="weapon">Arma</option><option value="healing">Cura</option><option value="key">Chave</option><option value="document">Documento</option></select></div><div id="item-specific-fields"></div><div class="form-group"><label for="itemDescription">Descrição:</label><textarea id="itemDescription"></textarea></div><button type="submit" class="modal-btn">Salvar</button></form></div></div>
-    
     <div id="enemyModal" class="master-modal"><div class="modal-content"><span class="close-modal">&times;</span><h2 id="enemyModalTitle"></h2><form id="enemyForm"><input type="hidden" id="enemyId"><div class="form-group"><label for="enemyName">Nome:</label><input type="text" id="enemyName" required></div><div class="form-group"><label for="enemyImage">URL da Imagem:</label><input type="url" id="enemyImage" placeholder="https://imgur.com/link_da_imagem.png"></div><div class="form-group"><label for="enemyHealth">Vida:</label><input type="number" id="enemyHealth" min="1" required></div><div class="form-group"><label for="enemyDamage">Dano:</label><input type="text" id="enemyDamage"></div><div class="form-group"><label for="enemyBehavior">Comportamento:</label><textarea id="enemyBehavior"></textarea></div><button type="submit" class="modal-btn">Salvar</button></form></div></div>
     
     <script src="master.js"></script>

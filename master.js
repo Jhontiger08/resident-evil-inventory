@@ -202,8 +202,9 @@ document.addEventListener('DOMContentLoaded', function () {
         
         // Preenche campos genéricos
         for(const element of form.elements) {
-            if(element.id && data[element.id.replace(entity, '').toLowerCase()]) {
-                element.value = data[element.id.replace(entity, '').toLowerCase()];
+            const fieldName = element.id.replace(entity, '').toLowerCase();
+            if(data[fieldName] !== undefined) {
+                element.value = data[fieldName];
             }
         }
 
@@ -355,7 +356,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (user) {
                 appState.currentUser = user;
                 loadInitialData();
-            } else { window.location.href = 'index.html'; } // Corrigido para novo nome do login
+            } else { window.location.href = 'index.html'; }
         });
     };
 

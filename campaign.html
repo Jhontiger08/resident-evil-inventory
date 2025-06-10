@@ -584,21 +584,15 @@
                 if (!code || !user) return alert('Insira o código da campanha.');
 
                 db.collection('campaigns').where('code', '==', code).limit(1).get()
-                    .then(async (querySnapshot) => { // Adicionado async aqui
-                        if (querySnapshot.empty) {
-                            return alert('Campanha não encontrada.');
-                        }
+                    .then(async (querySnapshot) => {
+                        if (querySnapshot.empty) return alert('Campanha não encontrada.');
                         
                         const doc = querySnapshot.docs[0];
                         const campaign = doc.data();
                         const campaignId = doc.id;
                         
-                        if (campaign.players.includes(user.uid)) {
-                            return enterCampaign(campaignId, campaign.masterId === user.uid);
-                        }
-                        if (campaign.players.length >= campaign.maxPlayers) {
-                            return alert('Esta campanha já está cheia.');
-                        }
+                        if (campaign.players.includes(user.uid)) return enterCampaign(campaignId, campaign.masterId === user.uid);
+                        if (campaign.players.length >= campaign.maxPlayers) return alert('Esta campanha já está cheia.');
 
                         const campaignRef = db.collection('campaigns').doc(campaignId);
                         const playerDocRef = campaignRef.collection('players').doc(user.uid);
@@ -611,7 +605,6 @@
                         };
 
                         try {
-                            // Usando uma transação para garantir que ambas as operações funcionem
                             await db.runTransaction(async (transaction) => {
                                 transaction.set(playerDocRef, initialPlayerData);
                                 transaction.update(campaignRef, { players: firebase.firestore.FieldValue.arrayUnion(user.uid) });
