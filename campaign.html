@@ -418,10 +418,8 @@
             <h1>GERENCIAR CAMPANHAS</h1>
             <p>Selecione ou crie uma nova jornada na Mansão Arklay</p>
         </div>
-
         <div class="campaign-box">
             <div class="campaign-umbrella">☣</div>
-
             <div class="campaign-options">
                 <div class="option-card" id="masterOption">
                     <h2>Sou o Mestre</h2>
@@ -430,11 +428,7 @@
                         <button id="createCampaignBtn" class="campaign-btn">Criar Nova Campanha</button>
                     </div>
                 </div>
-
-                <div class="option-divider">
-                    <span>OU</span>
-                </div>
-
+                <div class="option-divider"><span>OU</span></div>
                 <div class="option-card" id="playerOption">
                     <h2>Sou Jogador</h2>
                     <div class="option-content">
@@ -446,57 +440,29 @@
                     </div>
                 </div>
             </div>
-
             <div class="recent-campaigns">
                 <h3>Suas Campanhas Recentes</h3>
                 <div id="campaignList" class="campaign-list">
-                    <div class="empty-campaigns">
-                        <p>Nenhuma campanha recente encontrada</p>
-                    </div>
+                    <div class="empty-campaigns"><p>Nenhuma campanha recente encontrada</p></div>
                 </div>
             </div>
         </div>
-
         <div class="campaign-footer">
             <button id="logoutBtn" class="logout-btn">Sair</button>
             <p>Sistema desenvolvido por João Piel Neto</p>
         </div>
     </div>
-
     <div id="createCampaignModal" class="campaign-modal">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
             <h2>Criar Nova Campanha</h2>
-
-            <div class="form-group">
-                <label for="campaignName">Nome da Campanha:</label>
-                <input type="text" id="campaignName" placeholder="Ex.: A Maldição de Arklay" required>
-            </div>
-
-            <div class="form-group">
-                <label for="campaignType">Tipo de Jogo:</label>
-                <select id="campaignType">
-                    <option value="survival">Sobrevivência</option>
-                    <option value="investigation">Investigação</option>
-                    <option value="action">Ação</option>
-                    <option value="custom">Personalizado</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="initialNotes">Anotações Iniciais:</label>
-                <textarea id="initialNotes" placeholder="Descreva a premissa básica da campanha..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="playerCount">Número Máx. de Jogadores:</label>
-                <input type="number" id="playerCount" min="1" max="8" value="4">
-            </div>
-
+            <div class="form-group"><label for="campaignName">Nome da Campanha:</label><input type="text" id="campaignName" placeholder="Ex.: A Maldição de Arklay" required></div>
+            <div class="form-group"><label for="campaignType">Tipo de Jogo:</label><select id="campaignType"><option value="survival">Sobrevivência</option><option value="investigation">Investigação</option><option value="action">Ação</option><option value="custom">Personalizado</option></select></div>
+            <div class="form-group"><label for="initialNotes">Anotações Iniciais:</label><textarea id="initialNotes" placeholder="Descreva a premissa básica da campanha..."></textarea></div>
+            <div class="form-group"><label for="playerCount">Número Máx. de Jogadores:</label><input type="number" id="playerCount" min="1" max="8" value="4"></div>
             <button id="confirmCreateBtn" class="modal-btn">Criar Campanha</button>
         </div>
     </div>
-
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const firebaseConfig = {
@@ -511,6 +477,7 @@
             const db = firebase.firestore();
             const auth = firebase.auth();
             
+            // --- Referências da UI ---
             const createCampaignBtn = document.getElementById('createCampaignBtn');
             const joinCampaignBtn = document.getElementById('joinCampaignBtn');
             const campaignCodeInput = document.getElementById('campaignCode');
@@ -525,12 +492,13 @@
             const playerCountInput = document.getElementById('playerCount');
             let currentUserId = null;
 
+            // --- Lógica Principal ---
             auth.onAuthStateChanged((user) => {
                 if (user) {
                     currentUserId = user.uid;
                     loadUserCampaigns(currentUserId);
                 } else {
-                    window.location.href = 'index.html';
+                    window.location.href = 'index.html'; 
                 }
             });
 
@@ -572,58 +540,83 @@
                 const newCampaign = {
                     name: campaignNameInput.value.trim(), type: campaignTypeSelect.value, code,
                     masterId: user.uid, masterName: user.displayName || user.email,
-                    players: [user.uid], notes: initialNotesTextarea.value.trim(),
-                    maxPlayers: parseInt(playerCountInput.value), createdAt: firebase.firestore.FieldValue.serverTimestamp(), active: true
+                    players: [user.uid], maxPlayers: parseInt(playerCountInput.value), 
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(), active: true
                 };
-                db.collection('campaigns').add(newCampaign).then(docRef => window.location.href = `master.html?campaign=${docRef.id}`);
+                db.collection('campaigns').add(newCampaign).then(docRef => {
+                    const playerDocRef = docRef.collection('players').doc(user.uid);
+                    playerDocRef.set({
+                        name: user.displayName || "Mestre",
+                        type: 'master',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }).then(() => {
+                        window.location.href = `master.html?campaign=${docRef.id}`;
+                    });
+                });
             });
 
+            // --- LÓGICA CORRIGIDA PARA ENTRAR NA CAMPANHA ---
             joinCampaignBtn.addEventListener('click', () => {
                 const code = campaignCodeInput.value.trim().toUpperCase();
                 const user = auth.currentUser;
-                if (!code || !user) return alert('Insira o código da campanha.');
+                if (!code || !user) return alert('Por favor, insira o código da campanha.');
 
-                db.collection('campaigns').where('code', '==', code).limit(1).get()
-                    .then(async (querySnapshot) => {
-                        if (querySnapshot.empty) return alert('Campanha não encontrada.');
-                        
-                        const doc = querySnapshot.docs[0];
-                        const campaign = doc.data();
-                        const campaignId = doc.id;
-                        
-                        if (campaign.players.includes(user.uid)) return enterCampaign(campaignId, campaign.masterId === user.uid);
-                        if (campaign.players.length >= campaign.maxPlayers) return alert('Esta campanha já está cheia.');
+                const query = db.collection('campaigns').where('code', '==', code).limit(1);
 
-                        const campaignRef = db.collection('campaigns').doc(campaignId);
-                        const playerDocRef = campaignRef.collection('players').doc(user.uid);
-                        
-                        const initialPlayerData = {
-                            name: user.displayName || "Sobrevivente", health: 100, maxHealth: 100,
-                            strength: 10, dexterity: 10, constitution: 10, intelligence: 10, perception: 10,
-                            notes: "", inventory: Array(8).fill(null), characterImage: "", type: 'player',
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                        };
+                query.get().then(querySnapshot => {
+                    if (querySnapshot.empty) {
+                        alert('Nenhuma campanha encontrada com esse código.');
+                        return;
+                    }
 
-                        try {
-                            await db.runTransaction(async (transaction) => {
-                                transaction.set(playerDocRef, initialPlayerData);
-                                transaction.update(campaignRef, { players: firebase.firestore.FieldValue.arrayUnion(user.uid) });
-                            });
-                            enterCampaign(campaignId, false);
-                        } catch (error) {
-                            console.error("Erro ao entrar na campanha:", error);
-                            alert("Não foi possível entrar na campanha. Tente novamente.");
-                        }
-                    })
-                    .catch(error => {
-                        console.error("Erro ao buscar campanha:", error);
-                        alert("Erro ao buscar campanha.");
+                    const campaignDoc = querySnapshot.docs[0];
+                    const campaignData = campaignDoc.data();
+                    const campaignId = campaignDoc.id;
+
+                    if (campaignData.players.includes(user.uid)) {
+                        enterCampaign(campaignId, campaignData.masterId === user.uid);
+                        return;
+                    }
+
+                    if (campaignData.players.length >= campaignData.maxPlayers) {
+                        alert('Esta campanha já está cheia.');
+                        return;
+                    }
+
+                    const campaignRef = db.collection('campaigns').doc(campaignId);
+                    const playerDocRef = campaignRef.collection('players').doc(user.uid);
+                    const initialPlayerData = {
+                        name: user.displayName || "Sobrevivente",
+                        health: 100, maxHealth: 100,
+                        strength: 10, dexterity: 10, constitution: 10, intelligence: 10, perception: 10,
+                        notes: "", inventory: Array(8).fill(null), characterImage: "",
+                        type: 'player',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+
+                    // Executa as duas operações (criar ficha e adicionar à lista) de forma segura
+                    return db.runTransaction(async (transaction) => {
+                        transaction.set(playerDocRef, initialPlayerData);
+                        transaction.update(campaignRef, {
+                            players: firebase.firestore.FieldValue.arrayUnion(user.uid)
+                        });
+                    }).then(() => {
+                        console.log("Jogador adicionado com sucesso!");
+                        enterCampaign(campaignId, false);
                     });
+
+                }).catch(error => {
+                    console.error("Erro ao entrar na campanha:", error);
+                    alert("Ocorreu um erro ao tentar entrar na campanha. Verifique o console para mais detalhes.");
+                });
             });
 
-            logoutBtn.addEventListener('click', () => auth.signOut().then(() => window.location.href = 'index.html'));
+            logoutBtn.addEventListener('click', () => {
+                auth.signOut().then(() => {
+                    window.location.href = 'index.html';
+                });
+            });
         });
     </script>
 </body>
-
 </html>
