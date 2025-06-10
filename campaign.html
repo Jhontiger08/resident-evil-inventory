@@ -499,7 +499,6 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Configuração do Firebase
             const firebaseConfig = {
                 apiKey: "AIzaSyAKUKEyV3iS8QCQpdjtHhDdbiySy2e9RZY",
                 authDomain: "rpgterror-90630.firebaseapp.com",
@@ -508,20 +507,15 @@
                 messagingSenderId: "569459851763",
                 appId: "1:569459851763:web:302afb88d253d14ab25286"
             };
-
-            // Inicializa o Firebase
             firebase.initializeApp(firebaseConfig);
             const db = firebase.firestore();
             const auth = firebase.auth();
-
-            // Elementos da página
+            
             const createCampaignBtn = document.getElementById('createCampaignBtn');
             const joinCampaignBtn = document.getElementById('joinCampaignBtn');
             const campaignCodeInput = document.getElementById('campaignCode');
             const logoutBtn = document.getElementById('logoutBtn');
             const campaignList = document.getElementById('campaignList');
-
-            // Elementos do modal
             const createCampaignModal = document.getElementById('createCampaignModal');
             const closeModal = document.querySelector('.close-modal');
             const confirmCreateBtn = document.getElementById('confirmCreateBtn');
@@ -529,87 +523,37 @@
             const campaignTypeSelect = document.getElementById('campaignType');
             const initialNotesTextarea = document.getElementById('initialNotes');
             const playerCountInput = document.getElementById('playerCount');
-
             let currentUserId = null;
 
-            // Verifica autenticação
             auth.onAuthStateChanged((user) => {
                 if (user) {
                     currentUserId = user.uid;
-                    // --> DESTAQUE <-- Chama a função para carregar as campanhas do usuário
                     loadUserCampaigns(currentUserId);
                 } else {
                     window.location.href = 'index.html';
                 }
             });
 
-            // --> DESTAQUE <-- ESTA FUNÇÃO CARREGA AS CAMPANHAS DO USUÁRIO LOGADO
             function loadUserCampaigns(userId) {
-                campaignList.innerHTML = '<div class="empty-campaigns"><p>Carregando campanhas...</p></div>';
-
-                // A consulta 'where' busca em todas as campanhas nos quais o ID do usuário está na lista de 'players'
-                db.collection('campaigns')
-                    .where('players', 'array-contains', userId)
-                    .orderBy('createdAt', 'desc')
-                    .get()
+                db.collection('campaigns').where('players', 'array-contains', userId).orderBy('createdAt', 'desc').get()
                     .then((querySnapshot) => {
                         campaignList.innerHTML = '';
-
                         if (querySnapshot.empty) {
-                            campaignList.innerHTML = `
-                                <div class="empty-campaigns">
-                                    <p>Nenhuma campanha recente encontrada</p>
-                                </div>
-                            `;
+                            campaignList.innerHTML = `<div class="empty-campaigns"><p>Nenhuma campanha recente encontrada</p></div>`;
                             return;
                         }
-
-                        querySnapshot.forEach((doc) => {
-                            const campaign = doc.data();
-                            // --> DESTAQUE <-- Chama a função que vai exibir o card da campanha na tela
-                            renderCampaignItem(doc.id, campaign, userId);
-                        });
+                        querySnapshot.forEach((doc) => renderCampaignItem(doc.id, doc.data(), userId));
                     })
-                    .catch((error) => {
-                        console.error("Erro ao carregar campanhas:", error);
-                        campaignList.innerHTML = `
-                            <div class="empty-campaigns"><p>Erro ao carregar campanhas.</p></div>
-                        `;
-                    });
+                    .catch((error) => console.error("Erro ao carregar campanhas:", error));
             }
 
-            // --> DESTAQUE <-- ESTA FUNÇÃO CRIA O CARD DA CAMPANHA E MOSTRA SE VOCÊ É MESTRE OU JOGADOR
             function renderCampaignItem(campaignId, campaign, userId) {
-                const campaignItem = document.createElement('div');
-                campaignItem.className = 'campaign-item';
-
-                // A verificação é feita aqui: se o 'masterId' da campanha é igual ao seu 'userId'
+                const item = document.createElement('div');
+                item.className = 'campaign-item';
                 const isMaster = campaign.masterId === userId;
-
-                campaignItem.innerHTML = `
-                    <h4>${campaign.name}</h4>
-                    <p>Tipo: ${getCampaignTypeName(campaign.type)}</p>
-                    <p>Jogadores: ${campaign.players.length}/${campaign.maxPlayers}</p>
-                    <p>${isMaster ? '<b>(Mestre)</b>' : '(Jogador)'}</p>
-                    <p>Código: ${campaign.code}</p>
-                `;
-
-                // Adiciona o evento de clique para entrar na campanha
-                campaignItem.addEventListener('click', () => {
-                    enterCampaign(campaignId, isMaster);
-                });
-
-                campaignList.appendChild(campaignItem);
-            }
-
-            function getCampaignTypeName(type) {
-                const types = {
-                    'survival': 'Sobrevivência',
-                    'investigation': 'Investigação',
-                    'action': 'Ação',
-                    'custom': 'Personalizado'
-                };
-                return types[type] || type;
+                item.innerHTML = `<h4>${campaign.name}</h4><p>Tipo: ${campaign.type}</p><p>Jogadores: ${campaign.players.length}/${campaign.maxPlayers}</p><p>${isMaster ? '<b>(Mestre)</b>' : '(Jogador)'}</p><p>Código: ${campaign.code}</p>`;
+                item.addEventListener('click', () => enterCampaign(campaignId, isMaster));
+                campaignList.appendChild(item);
             }
 
             function enterCampaign(campaignId, isMaster) {
@@ -640,18 +584,25 @@
                 if (!code || !user) return alert('Insira o código da campanha.');
 
                 db.collection('campaigns').where('code', '==', code).limit(1).get()
-                    .then((querySnapshot) => {
-                        if (querySnapshot.empty) return alert('Campanha não encontrada.');
+                    .then(async (querySnapshot) => { // Adicionado async aqui
+                        if (querySnapshot.empty) {
+                            return alert('Campanha não encontrada.');
+                        }
                         
                         const doc = querySnapshot.docs[0];
                         const campaign = doc.data();
                         const campaignId = doc.id;
                         
-                        if (campaign.players.includes(user.uid)) return enterCampaign(campaignId, campaign.masterId === user.uid);
-                        if (campaign.players.length >= campaign.maxPlayers) return alert('Esta campanha já está cheia.');
+                        if (campaign.players.includes(user.uid)) {
+                            return enterCampaign(campaignId, campaign.masterId === user.uid);
+                        }
+                        if (campaign.players.length >= campaign.maxPlayers) {
+                            return alert('Esta campanha já está cheia.');
+                        }
 
                         const campaignRef = db.collection('campaigns').doc(campaignId);
                         const playerDocRef = campaignRef.collection('players').doc(user.uid);
+                        
                         const initialPlayerData = {
                             name: user.displayName || "Sobrevivente", health: 100, maxHealth: 100,
                             strength: 10, dexterity: 10, constitution: 10, intelligence: 10, perception: 10,
@@ -659,31 +610,26 @@
                             createdAt: firebase.firestore.FieldValue.serverTimestamp()
                         };
 
-                        // Transação para garantir consistência
-                        db.runTransaction(async (transaction) => {
-                            transaction.set(playerDocRef, initialPlayerData);
-                            transaction.update(campaignRef, { players: firebase.firestore.FieldValue.arrayUnion(user.uid) });
-                        }).then(() => {
+                        try {
+                            // Usando uma transação para garantir que ambas as operações funcionem
+                            await db.runTransaction(async (transaction) => {
+                                transaction.set(playerDocRef, initialPlayerData);
+                                transaction.update(campaignRef, { players: firebase.firestore.FieldValue.arrayUnion(user.uid) });
+                            });
                             enterCampaign(campaignId, false);
-                        }).catch(error => console.error("Erro ao entrar na campanha:", error));
+                        } catch (error) {
+                            console.error("Erro ao entrar na campanha:", error);
+                            alert("Não foi possível entrar na campanha. Tente novamente.");
+                        }
                     })
-                    .catch(error => console.error("Erro ao buscar campanha:", error));
+                    .catch(error => {
+                        console.error("Erro ao buscar campanha:", error);
+                        alert("Erro ao buscar campanha.");
+                    });
             });
 
             logoutBtn.addEventListener('click', () => auth.signOut().then(() => window.location.href = 'index.html'));
         });
-
-            // Logout
-            logoutBtn.addEventListener('click', () => {
-                auth.signOut()
-                    .then(() => {
-                        window.location.href = 'index.html';
-                    })
-                    .catch((error) => {
-                        console.error("Erro ao fazer logout:", error);
-                        alert("Erro ao sair: " + error.message);
-                    });
-            });
     </script>
 </body>
 
