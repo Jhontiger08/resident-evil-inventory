@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', function () {
         masterMap: document.getElementById('masterMap'),
         clearMapBtn: document.getElementById('clearMapBtn'),
         diceBtns: document.querySelectorAll('.dice-btn'),
+        diceQuantityInput: document.getElementById('diceQuantityInput'),
         masterChat: document.querySelector('.master-chat'),
         masterChatMessages: document.getElementById('masterChatMessages'),
         masterChatInput: document.getElementById('masterChatInput'),
@@ -98,28 +99,38 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- FUNÇÕES DE RENDERIZAÇÃO ---
     const renderPlayers = () => {
-        ui.playerList.innerHTML = appState.players.length === 0 ? '<div class="empty-placeholder">Nenhum jogador conectado</div>' : '';
-        appState.players.forEach(player => {
-            const p = document.createElement('div');
-            p.className = `player-item ${player.type === 'npc' ? 'npc-player' : ''}`;
-            p.dataset.playerId = player.id;
-            const health = player.health || 0;
-            const maxHealth = player.maxHealth || 1;
-            const healthPercent = (health / maxHealth) * 100;
-            let healthClass = 'health-red';
-            if (healthPercent > 60) healthClass = 'health-green';
-            else if (healthPercent > 30) healthClass = 'health-yellow';
+        ui.playerList.innerHTML = '';
+        
+        // NOVO: Filtra os jogadores para não incluir o mestre na lista da UI
+        const displayPlayers = appState.players.filter(p => p.id !== appState.masterInfo.id);
 
-            p.innerHTML = `
-                <h3>${player.name} <span>${health}/${maxHealth}</span></h3>
-                <p>${player.type === 'npc' ? 'NPC' : 'Jogador'}</p>
-                <div class="player-health"><progress class="${healthClass}" value="${health}" max="${maxHealth}"></progress></div>
-            `;
-            p.addEventListener('click', () => openPlayerActionModal(player));
-            ui.playerList.appendChild(p);
-        });
-        const actualPlayers = appState.players.filter(p => p.type !== 'npc');
-        ui.playerCount.textContent = `(${actualPlayers.length}/${appState.campaignMaxPlayers || 'N/A'})`;
+        if(displayPlayers.length === 0) {
+            ui.playerList.innerHTML = '<div class="empty-placeholder">Nenhum jogador conectado</div>';
+        } else {
+             displayPlayers.forEach(player => {
+                const p = document.createElement('div');
+                p.className = `player-item ${player.type === 'npc' ? 'npc-player' : ''}`;
+                p.dataset.playerId = player.id;
+                const health = player.health || 0;
+                const maxHealth = player.maxHealth || 1;
+                const healthPercent = (health / maxHealth) * 100;
+                let healthClass = 'health-red';
+                if (healthPercent > 60) healthClass = 'health-green';
+                else if (healthPercent > 30) healthClass = 'health-yellow';
+
+                p.innerHTML = `
+                    <h3>${player.name} <span>${health}/${maxHealth}</span></h3>
+                    <p>${player.type === 'npc' ? 'NPC' : 'Jogador'}</p>
+                    <div class="player-health"><progress class="${healthClass}" value="${health}" max="${maxHealth}"></progress></div>
+                `;
+                p.addEventListener('click', () => openPlayerActionModal(player));
+                ui.playerList.appendChild(p);
+            });
+        }
+       
+        // NOVO: Contagem de jogadores também exclui o mestre
+        const playerCount = appState.players.filter(p => p.id !== appState.masterInfo.id).length;
+        ui.playerCount.textContent = `(${playerCount}/${appState.campaignMaxPlayers || 'N/A'})`;
     };
 
     const renderGenericList = (list, container, renderFunc) => {
@@ -270,12 +281,14 @@ document.addEventListener('DOMContentLoaded', function () {
         );
 
         if (confirmed) {
-            playersRef.doc(playerId).delete()
-                .then(() => {
-                    showNotification(`${player.name} foi expulso da campanha.`, 'success');
-                    closeModal('playerActionModal');
-                })
-                .catch(err => showNotification(`Erro ao expulsar jogador: ${err.message}`, 'error'));
+            // Remove da lista de jogadores e deleta a ficha
+            const batch = db.batch();
+            batch.update(campaignRef, { players: firebase.firestore.FieldValue.arrayRemove(playerId) });
+            batch.delete(playersRef.doc(playerId));
+            
+            await batch.commit();
+            showNotification(`${player.name} foi expulso da campanha.`, 'success');
+            closeModal('playerActionModal');
         }
     };
 
@@ -430,8 +443,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 ui.masterNotes.value = data.masterNotes || '';
                 renderMapList();
             } else {
-                alert("Campanha não encontrada ou foi encerrada.");
-                window.location.href = 'campaign.html';
+                // Se o documento não existe, é porque foi deletado. Redireciona.
+                showNotification("A campanha foi encerrada ou deletada.", "info");
+                setTimeout(() => { window.location.href = 'campaign.html'; }, 2000);
             }
         });
 
@@ -470,7 +484,21 @@ document.addEventListener('DOMContentLoaded', function () {
     const setupUIEvents = () => {
         ui.copyCodeBtn.addEventListener('click', () => navigator.clipboard.writeText(ui.campaignCode.textContent).then(() => showNotification('Código copiado!', 'success')));
         ui.saveNotesBtn.addEventListener('click', () => campaignRef.update({ masterNotes: ui.masterNotes.value }).then(() => showNotification('Anotações salvas.', 'success')));
-        ui.endSessionBtn.addEventListener('click', async () => { if (await showConfirmation('Encerrar Sessão', 'Isso desconectará todos os jogadores. Deseja continuar?')) { campaignRef.update({ active: false }).then(() => window.location.href = 'campaign.html'); } });
+        
+        // NOVO: Lógica destrutiva para encerrar a sessão
+        ui.endSessionBtn.addEventListener('click', async () => { 
+            const confirmed = await showConfirmation('Encerrar Sessão', 'ATENÇÃO: Isso deletará PERMANENTEMENTE a campanha e todos os seus dados. Deseja continuar?');
+            if (confirmed) { 
+                // Idealmente, isso seria feito com uma Cloud Function para garantir a atomicidade.
+                // A abordagem no cliente é deletar o documento principal, o que já remove o acesso.
+                campaignRef.delete().then(() => {
+                    // O listener em loadInitialData vai detectar a deleção e redirecionar.
+                }).catch(err => {
+                    showNotification(`Erro ao encerrar sessão: ${err.message}`, 'error');
+                });
+            } 
+        });
+
         ui.masterLogoutBtn.addEventListener('click', () => auth.signOut());
 
         ui.tabs.forEach(btn => btn.addEventListener('click', (e) => {
@@ -543,7 +571,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         ui.clearMapBtn.addEventListener('click', async () => { if (await showConfirmation('Limpar Mapa', 'Isso removerá todas as áreas reveladas. Certeza?')) { mapStateRef.set({ revealed: [] }); } });
 
-        // --- LÓGICA DO SOM DOS DADOS ---
         ui.diceBtns.forEach(btn => btn.addEventListener('click', (e) => {
             const diceAudio = document.getElementById('master-dice-audio');
             if (diceAudio) {
@@ -552,8 +579,22 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             
             const sides = parseInt(e.target.dataset.sides);
-            const result = Math.floor(Math.random() * sides) + 1;
-            const rollText = `(Mestre) rolou d${sides}: ${result}`;
+            const quantity = parseInt(ui.diceQuantityInput.value) || 1;
+            
+            let rolls = [];
+            let total = 0;
+            for (let i = 0; i < quantity; i++) {
+                const roll = Math.floor(Math.random() * sides) + 1;
+                rolls.push(roll);
+                total += roll;
+            }
+
+            let rollText;
+            if (quantity === 1) {
+                rollText = `(Mestre) rolou 1d${sides}: ${total}`;
+            } else {
+                rollText = `(Mestre) rolou ${quantity}d${sides}: [${rolls.join(', ')}] = ${total}`;
+            }
 
             eventsRef.add({ type: 'dice_roll', senderId: appState.currentUser.uid, senderName: appState.masterInfo.name || 'Mestre', text: rollText, timestamp: firebase.firestore.FieldValue.serverTimestamp() })
                 .then(() => showNotification('Rolagem enviada para o chat!', 'info'));
@@ -571,6 +612,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (ui.toggleChatBtn) {
             ui.toggleChatBtn.addEventListener('click', () => {
                 ui.masterChat.classList.toggle('collapsed');
+                const icon = ui.toggleChatBtn.querySelector('i');
+                icon.classList.toggle('fa-chevron-up');
+                icon.classList.toggle('fa-chevron-down');
             });
         }
     };

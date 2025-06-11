@@ -14,7 +14,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
 
-    <!-- Estilos já adicionados anteriormente -->
     <style>
         #playerActionModal .form-section { padding-bottom: 1.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(192, 160, 80, 0.2); }
         #playerActionModal .form-section:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
@@ -36,6 +35,29 @@
         .help-content ol { color: #ccc; padding-left: 20px; }
         .help-content li { margin-bottom: 0.5rem; }
         .help-content code { background-color: #1a1a1a; padding: 2px 6px; border-radius: 3px; color: #e0e0e0; font-family: monospace; word-break: break-all; }
+        .dice-roller .dice-quantity { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 1.5rem; }
+        .dice-roller .dice-quantity label { font-size: 1.1rem; color: #c0a050; }
+        .dice-roller #diceQuantityInput { width: 70px; padding: 0.5rem; text-align: center; background-color: #1a1a1a; border: 1px solid #444; color: #e0e0e0; border-radius: 4px; font-family: 'IM Fell English SC', serif; font-size: 1.2rem; }
+
+        /* NOVO: CSS Corrigido para a seta do chat */
+        .master-chat .chat-header #toggleChatBtn {
+            background-color: rgba(66, 66, 66, 0.5);
+            border: 1px solid rgba(192, 160, 80, 0.3);
+            color: #c0a050;
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .master-chat .chat-header #toggleChatBtn:hover {
+            background-color: #c0a050;
+            color: #000;
+        }
+
     </style>
 
 </head>
@@ -58,7 +80,6 @@
         </header>
 
         <main class="master-body">
-            <!-- Conteúdo principal -->
             <aside class="players-panel">
                 <h2><i class="fas fa-users"></i> Jogadores <span id="playerCount">(0/6)</span></h2>
                 <div class="player-list" id="playerList">
@@ -124,6 +145,10 @@
                 <div class="tab-content" id="diceTab">
                     <div class="dice-roller">
                         <h3>Rolador de Dados (Envia para o Chat)</h3>
+                        <div class="dice-quantity">
+                            <label for="diceQuantityInput">Quantidade:</label>
+                            <input type="number" id="diceQuantityInput" value="1" min="1" max="100">
+                        </div>
                         <div class="dice-controls">
                             <button class="dice-btn re-btn" data-sides="4">d4</button>
                             <button class="dice-btn re-btn" data-sides="6">d6</button>
@@ -264,7 +289,6 @@
         </div>
     </div>
 
-    <!-- Áudio dos dados para o mestre -->
     <audio id="master-dice-audio" src="sounds/dice1.mp3"></audio>
 
     <script src="master.js" defer></script>

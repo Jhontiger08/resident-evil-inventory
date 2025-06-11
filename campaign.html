@@ -342,6 +342,26 @@
             background-color: #d4b468;
         }
 
+        .delete-campaign-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: none;
+            border: none;
+            color: #8a3333;
+            cursor: pointer;
+            font-size: 1.2rem;
+            line-height: 1;
+            padding: 5px;
+            transition: color 0.3s;
+            z-index: 2;
+            /* Garante que o botão fique clicável */
+        }
+
+        .delete-campaign-btn:hover {
+            color: #f44336;
+        }
+
         /* Animações */
         @keyframes fadeIn {
             from {
@@ -443,7 +463,9 @@
             <div class="recent-campaigns">
                 <h3>Suas Campanhas Recentes</h3>
                 <div id="campaignList" class="campaign-list">
-                    <div class="empty-campaigns"><p>Nenhuma campanha recente encontrada</p></div>
+                    <div class="empty-campaigns">
+                        <p>Nenhuma campanha recente encontrada</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -456,10 +478,18 @@
         <div class="modal-content">
             <span class="close-modal">&times;</span>
             <h2>Criar Nova Campanha</h2>
-            <div class="form-group"><label for="campaignName">Nome da Campanha:</label><input type="text" id="campaignName" placeholder="Ex.: A Maldição de Arklay" required></div>
-            <div class="form-group"><label for="campaignType">Tipo de Jogo:</label><select id="campaignType"><option value="survival">Sobrevivência</option><option value="investigation">Investigação</option><option value="action">Ação</option><option value="custom">Personalizado</option></select></div>
-            <div class="form-group"><label for="initialNotes">Anotações Iniciais:</label><textarea id="initialNotes" placeholder="Descreva a premissa básica da campanha..."></textarea></div>
-            <div class="form-group"><label for="playerCount">Número Máx. de Jogadores:</label><input type="number" id="playerCount" min="1" max="8" value="4"></div>
+            <div class="form-group"><label for="campaignName">Nome da Campanha:</label><input type="text"
+                    id="campaignName" placeholder="Ex.: A Maldição de Arklay" required></div>
+            <div class="form-group"><label for="campaignType">Tipo de Jogo:</label><select id="campaignType">
+                    <option value="survival">Sobrevivência</option>
+                    <option value="investigation">Investigação</option>
+                    <option value="action">Ação</option>
+                    <option value="custom">Personalizado</option>
+                </select></div>
+            <div class="form-group"><label for="initialNotes">Anotações Iniciais:</label><textarea id="initialNotes"
+                    placeholder="Descreva a premissa básica da campanha..."></textarea></div>
+            <div class="form-group"><label for="playerCount">Número Máx. de Jogadores:</label><input type="number"
+                    id="playerCount" min="1" max="8" value="4"></div>
             <button id="confirmCreateBtn" class="modal-btn">Criar Campanha</button>
         </div>
     </div>
@@ -476,7 +506,7 @@
             firebase.initializeApp(firebaseConfig);
             const db = firebase.firestore();
             const auth = firebase.auth();
-            
+
             // --- Referências da UI ---
             const createCampaignBtn = document.getElementById('createCampaignBtn');
             const joinCampaignBtn = document.getElementById('joinCampaignBtn');
@@ -498,7 +528,7 @@
                     currentUserId = user.uid;
                     loadUserCampaigns(currentUserId);
                 } else {
-                    window.location.href = 'index.html'; 
+                    window.location.href = 'index.html';
                 }
             });
 
@@ -518,9 +548,25 @@
             function renderCampaignItem(campaignId, campaign, userId) {
                 const item = document.createElement('div');
                 item.className = 'campaign-item';
+                item.dataset.campaignId = campaignId; // Adiciona ID para o evento de clique
                 const isMaster = campaign.masterId === userId;
-                item.innerHTML = `<h4>${campaign.name}</h4><p>Tipo: ${campaign.type}</p><p>Jogadores: ${campaign.players.length}/${campaign.maxPlayers}</p><p>${isMaster ? '<b>(Mestre)</b>' : '(Jogador)'}</p><p>Código: ${campaign.code}</p>`;
-                item.addEventListener('click', () => enterCampaign(campaignId, isMaster));
+                // NOVO: Exclui o mestre da contagem de jogadores
+                const playerCount = campaign.players.filter(p => p !== campaign.masterId).length;
+
+                let itemHTML = `
+        <h4>${campaign.name}</h4>
+        <p>Tipo: ${campaign.type}</p>
+        <p>Jogadores: ${playerCount}/${campaign.maxPlayers}</p>
+        <p>${isMaster ? '<b>(Mestre)</b>' : '(Jogador)'}</p>
+        <p>Código: ${campaign.code}</p>
+    `;
+
+                // NOVO: Adiciona botão de deletar se for o mestre
+                if (isMaster) {
+                    itemHTML += `<button class="delete-campaign-btn" title="Deletar Campanha"><i class="fas fa-trash-alt"></i></button>`;
+                }
+
+                item.innerHTML = itemHTML;
                 campaignList.appendChild(item);
             }
 
@@ -535,12 +581,12 @@
             confirmCreateBtn.addEventListener('click', () => {
                 const user = auth.currentUser;
                 if (!user || !campaignNameInput.value.trim()) return alert('Dê um nome à campanha.');
-                
+
                 const code = Array(6).fill(0).map(() => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'.charAt(Math.floor(Math.random() * 32))).join('');
                 const newCampaign = {
                     name: campaignNameInput.value.trim(), type: campaignTypeSelect.value, code,
                     masterId: user.uid, masterName: user.displayName || user.email,
-                    players: [user.uid], maxPlayers: parseInt(playerCountInput.value), 
+                    players: [user.uid], maxPlayers: parseInt(playerCountInput.value),
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(), active: true
                 };
                 db.collection('campaigns').add(newCampaign).then(docRef => {
@@ -611,6 +657,42 @@
                 });
             });
 
+            // NOVO: Event listener delegado para cliques nos cards
+            campaignList.addEventListener('click', (e) => {
+                const target = e.target;
+                const campaignItem = target.closest('.campaign-item');
+                if (!campaignItem) return;
+
+                const campaignId = campaignItem.dataset.campaignId;
+
+                // Verifica se o clique foi no botão de deletar
+                if (target.closest('.delete-campaign-btn')) {
+                    e.stopPropagation(); // Impede que o clique no lixo entre na campanha
+                    handleDeleteCampaign(campaignId);
+                } else {
+                    // Senão, o clique foi no card para entrar
+                    const isMaster = campaignItem.querySelector('b')?.textContent.includes('(Mestre)');
+                    enterCampaign(campaignId, isMaster);
+                }
+            });
+
+            // NOVO: Função para deletar a campanha
+            async function handleDeleteCampaign(campaignId) {
+                if (!confirm('ATENÇÃO: Isso deletará PERMANENTEMENTE a campanha e todos os seus dados (fichas, itens, etc). Esta ação não pode ser desfeita. Deseja continuar?')) {
+                    return;
+                }
+                try {
+                    // No cliente, deletar o documento principal já remove o acesso.
+                    // A deleção de subcoleções é idealmente feita via Cloud Functions para garantir.
+                    await db.collection('campaigns').doc(campaignId).delete();
+                    console.log(`Campanha ${campaignId} deletada com sucesso.`);
+                    loadUserCampaigns(currentUserId); // Recarrega a lista
+                } catch (error) {
+                    console.error("Erro ao deletar campanha:", error);
+                    alert("Ocorreu um erro ao tentar deletar a campanha.");
+                }
+            }
+
             logoutBtn.addEventListener('click', () => {
                 auth.signOut().then(() => {
                     window.location.href = 'index.html';
@@ -619,4 +701,5 @@
         });
     </script>
 </body>
+
 </html>
