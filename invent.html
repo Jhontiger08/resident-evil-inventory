@@ -7,7 +7,7 @@
     <title>Resident Evil RPG - Ficha de Personagem</title>
     <link rel="icon" href="imgs/icon.png" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&display=swap" rel="stylesheet">
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 
     <style>
@@ -19,6 +19,28 @@
         .player-chat-container.collapsed {
             height: 40px;
             overflow: hidden;
+        }
+
+        /* --- CORREÇÃO CSS: POSICIONAMENTO DO MAPA E DA NÉVOA --- */
+        .map-container {
+            position: relative;
+            background-color: #000;
+            display: flex; /* Ajuda a centralizar a imagem se ela for menor que o container */
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        #map-image {
+            max-width: 100%;
+            max-height: 80vh;
+        }
+
+        #player-fog-of-war {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none; /* Permite interagir com o mapa por baixo, se necessário */
         }
     </style>
 
@@ -113,7 +135,7 @@
         <div id="player-chat-container" class="player-chat-container">
             <div class="chat-header">
                 <h3>Chat da Campanha</h3>
-                <button id="toggle-chat-btn" title="Minimizar/Maximizar">_</button>
+                <button id="toggle-chat-btn" title="Minimizar/Maximizar"><i class="fas fa-window-minimize"></i></button>
             </div>
             <div id="chat-messages" class="chat-messages"></div>
             <div class="chat-input">
@@ -135,7 +157,7 @@
         <div class="modal-content">
             <span class="close-btn">&times;</span>
             <div class="map-controls">
-                <span id="map-title">Mapa</span>
+                <h3 id="map-title">Mapa</h3>
             </div>
             <div class="map-container">
                 <img id="map-image" src="" alt="Mapa da campanha">
@@ -201,7 +223,7 @@
                 imageUpload: document.getElementById('image-upload'),
                 charNameInput: document.getElementById('char-name'),
                 equippedWeapon: document.getElementById('equipped-weapon'),
-                healthBar: document.getElementById('health'), // Mantido para lógica, mas não para display
+                healthBar: document.getElementById('health'),
                 healthValue: document.getElementById('health-value'),
                 increaseHealthBtn: document.getElementById('increase-health-btn'),
                 decreaseHealthBtn: document.getElementById('decrease-health-btn'),
@@ -315,9 +337,7 @@
                                 }
                             }
                         });
-
                         isInitialEventsLoad = false;
-
                     }, (error) => {
                         console.error("Erro no listener de eventos: ", error);
                     });
@@ -348,251 +368,6 @@
                 });
             }
 
-            // --- LÓGICA DO CHAT ---
-            function displayChatMessage(message) {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'chat-message';
-
-                const senderSpan = document.createElement('span');
-                senderSpan.className = 'message-sender';
-                senderSpan.textContent = message.senderName || 'Sistema';
-
-                if (message.senderId === userId) messageDiv.classList.add('own-message');
-                else if (message.senderId === masterId) senderSpan.classList.add('master');
-
-                const textP = document.createElement('p');
-                textP.className = 'message-text';
-                textP.textContent = message.text;
-
-                messageDiv.appendChild(senderSpan);
-                messageDiv.appendChild(textP);
-
-                elements.chatMessages.appendChild(messageDiv);
-                elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
-            }
-
-            function sendChatMessage() {
-                const messageText = elements.chatInputField.value.trim();
-                if (!messageText) return;
-                const message = {
-                    senderId: userId,
-                    senderName: elements.charNameInput.value || auth.currentUser.displayName,
-                    text: messageText,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    type: 'chat'
-                };
-                campaignDocRef.collection('events').add(message);
-                elements.chatInputField.value = '';
-            }
-
-            // --- LÓGICA DE ATUALIZAÇÃO DA UI ---
-            function updateUI(data) {
-                elements.charNameInput.value = data.name || '';
-                elements.strengthInput.value = data.strength || 10;
-                elements.dexterityInput.value = data.dexterity || 10;
-                elements.constitutionInput.value = data.constitution || 10;
-                elements.intelligenceInput.value = data.intelligence || 10;
-                elements.perceptionInput.value = data.perception || 10;
-                elements.notesTextarea.value = data.notes || '';
-
-                if (data.characterImage) {
-                    elements.characterImage.innerHTML = `<img src="${data.characterImage}" alt="Personagem">`;
-                } else {
-                    elements.characterImage.innerHTML = ''; // Limpa se não houver imagem
-                }
-
-                updateCalculatedStats(data);
-
-                if (JSON.stringify(localInventory) !== JSON.stringify(data.inventory)) {
-                    localInventory = data.inventory && data.inventory.length === 8 ? data.inventory : Array(8).fill(null);
-                    renderInventory();
-                }
-            }
-
-            function updateCalculatedStats(data) {
-                const constitution = parseInt(elements.constitutionInput.value);
-                const strength = parseInt(elements.strengthInput.value);
-                const intelligence = parseInt(elements.intelligenceInput.value);
-                const dexterity = parseInt(elements.dexterityInput.value);
-
-                const lifeTotal = Math.floor((constitution + strength) / 2);
-                elements.lifeTotalSpan.textContent = lifeTotal;
-                elements.sanityTotalSpan.textContent = intelligence * dexterity;
-
-                // Lógica da barra de vida agora usa o elemento de progresso escondido apenas para guardar os valores
-                elements.healthBar.max = lifeTotal;
-                const currentHealth = data ? Math.min(data.health, lifeTotal) : parseInt(elements.healthBar.value);
-                elements.healthBar.value = Math.min(currentHealth, lifeTotal);
-                elements.healthValue.textContent = `${elements.healthBar.value}/${lifeTotal}`;
-
-                updateHealthBarColor();
-            }
-
-            // Função de cor da vida atualizada para controlar o novo 'div'
-            function updateHealthBarColor() {
-                const percent = (elements.healthBar.value / elements.healthBar.max) * 100;
-                const barFill = document.getElementById('health-bar-fill');
-
-                if (!barFill) return;
-
-                barFill.style.width = percent + '%';
-
-                if (percent > 60) barFill.style.backgroundColor = '#2E7D32'; // Verde
-                else if (percent > 30) barFill.style.backgroundColor = '#FBC02D'; // Amarelo
-                else barFill.style.backgroundColor = '#C62828'; // Vermelho
-            }
-
-            // --- LÓGICA DE DADOS E SALVAMENTO ---
-            function saveData() {
-                if (!playerDocRef) return;
-                const dataToSave = {
-                    name: elements.charNameInput.value,
-                    health: parseInt(elements.healthBar.value),
-                    maxHealth: parseInt(elements.healthBar.max),
-                    strength: parseInt(elements.strengthInput.value),
-                    dexterity: parseInt(elements.dexterityInput.value),
-                    constitution: parseInt(elements.constitutionInput.value),
-                    intelligence: parseInt(elements.intelligenceInput.value),
-                    perception: parseInt(elements.perceptionInput.value),
-                    notes: elements.notesTextarea.value,
-                    inventory: localInventory,
-                    characterImage: elements.characterImage.querySelector('img')?.src || ''
-                };
-                playerDocRef.update(dataToSave).catch(error => console.error("Erro ao salvar dados: ", error));
-            }
-
-            // --- LÓGICA DO INVENTÁRIO (COM AÇÕES DINÂMICAS) ---
-            function discardItem(index) {
-                const item = localInventory[index];
-                if (item && confirm(`Tem certeza que deseja descartar ${item.name}?`)) {
-                    localInventory[index] = null;
-                    elements.itemDescription.innerHTML = 'Clique em um item para ver a descrição.';
-                    elements.selectedItemDisplay.textContent = 'Nenhum';
-                    saveData();
-                }
-            }
-
-            function useHealingItem(index) {
-                const item = localInventory[index];
-                if (item && item.type === 'healing' && item.healAmount) {
-                    adjustHealth(item.healAmount);
-                    alert(`Você usou ${item.name} e recuperou ${item.healAmount} de vida.`);
-                    localInventory[index] = null;
-                    elements.itemDescription.innerHTML = 'Clique em um item para ver a descrição.';
-                    elements.selectedItemDisplay.textContent = 'Nenhum';
-                    saveData();
-                }
-            }
-
-            function readDocument(index) {
-                const item = localInventory[index];
-                if (item && item.type === 'document') {
-                    elements.readDocumentModal.querySelector('#document-title').textContent = item.name;
-                    elements.readDocumentModal.querySelector('#document-content').innerHTML = `<p>${(item.content || "Este documento parece estar em branco.").replace(/\n/g, '<br>')}</p>`;
-                    elements.readDocumentModal.style.display = 'block';
-                }
-            }
-
-            function adjustAmmo(index, amount) {
-                const item = localInventory[index];
-                if (item && item.type === 'weapon') {
-                    if (item.ammoCount === undefined) item.ammoCount = 0;
-                    const newAmount = item.ammoCount + amount;
-                    item.ammoCount = Math.max(0, newAmount);
-                    saveData();
-                    selectItem(index);
-                }
-            }
-
-            function selectItem(index) {
-                selectedSlotIndex = index;
-                document.querySelectorAll('.inventory-slot.selected').forEach(s => s.classList.remove('selected'));
-                if (elements.inventoryGrid.children[index]) {
-                    elements.inventoryGrid.children[index].classList.add('selected');
-                }
-
-                const item = localInventory[index];
-                if (item) {
-                    elements.selectedItemDisplay.textContent = item.name;
-                    let descriptionHTML = `<p>${item.description || ''}</p><p><strong>Tipo:</strong> ${item.type || ''}</p>`;
-
-                    if (item.type === 'weapon') {
-                        descriptionHTML += `
-                            <div class="ammo-control">
-                                <strong>Munição:</strong>
-                                <div class="ammo-buttons">
-                                    <button id="decrease-ammo-btn" class="ammo-btn">-</button>
-                                    <span class="ammo-count">${item.ammoCount || 0}</span>
-                                    <button id="increase-ammo-btn" class="ammo-btn">+</button>
-                                </div>
-                            </div>
-                        `;
-                    }
-
-                    descriptionHTML += `<div class="item-actions">`;
-                    switch (item.type) {
-                        case 'healing':
-                            descriptionHTML += `<button id="use-item-btn" class="re-btn">Usar</button>`;
-                            break;
-                        case 'document':
-                            descriptionHTML += `<button id="read-doc-btn" class="re-btn">Ler</button>`;
-                            break;
-                    }
-                    descriptionHTML += `<button id="discard-item-btn" class="re-btn re-btn-secondary">Descartar</button>`;
-                    descriptionHTML += `</div>`;
-                    elements.itemDescription.innerHTML = descriptionHTML;
-
-                    document.getElementById('decrease-ammo-btn')?.addEventListener('click', () => adjustAmmo(selectedSlotIndex, -1));
-                    document.getElementById('increase-ammo-btn')?.addEventListener('click', () => adjustAmmo(selectedSlotIndex, 1));
-                    document.getElementById('use-item-btn')?.addEventListener('click', () => useHealingItem(selectedSlotIndex));
-                    document.getElementById('read-doc-btn')?.addEventListener('click', () => readDocument(selectedSlotIndex));
-                    document.getElementById('discard-item-btn')?.addEventListener('click', () => discardItem(selectedSlotIndex));
-
-                    if (item.type === 'weapon') {
-                        elements.equippedWeapon.innerHTML = `Arma: ${item.name}`;
-                    }
-                } else {
-                    elements.selectedItemDisplay.textContent = 'Nenhum';
-                    elements.itemDescription.innerHTML = 'Clique em um item para ver a descrição.';
-                }
-            }
-
-            function renderInventory() {
-                elements.inventoryGrid.innerHTML = '';
-                for (let i = 0; i < 8; i++) {
-                    const item = localInventory[i];
-                    const slot = document.createElement('div');
-                    slot.className = 'inventory-slot';
-
-                    if (item) {
-                        slot.innerHTML = '';
-                        slot.style.backgroundColor = '#222';
-
-                        if (item.image) {
-                            slot.style.backgroundImage = `url('${item.image}')`;
-                            slot.style.backgroundSize = 'cover';
-                            slot.style.backgroundPosition = 'center';
-                            slot.style.backgroundRepeat = 'no-repeat';
-                        }
-                    } else {
-                        slot.innerHTML = `<span>+</span>`;
-                        slot.style.backgroundImage = 'none';
-                    }
-
-                    if (i === selectedSlotIndex && !item) {
-                        selectedSlotIndex = -1;
-                        elements.selectedItemDisplay.textContent = 'Nenhum';
-                        elements.itemDescription.innerHTML = 'Clique em um item para ver a descrição.';
-                    }
-                    slot.addEventListener('click', () => selectItem(i));
-                    elements.inventoryGrid.appendChild(slot);
-
-                    if (i === selectedSlotIndex && item) {
-                        slot.classList.add('selected');
-                    }
-                }
-            }
-
             // --- LÓGICA DO MAPA ---
             function setupPlayerMap() {
                 const canvas = elements.playerFogOfWarCanvas;
@@ -602,14 +377,16 @@
 
                 const resizeCanvas = () => {
                     if (mapImage.naturalWidth > 0) {
-                        const mapAspectRatio = mapImage.naturalHeight / mapImage.naturalWidth;
-                        const containerWidth = mapImage.parentElement.clientWidth;
-                        canvas.width = containerWidth;
-                        canvas.height = containerWidth * mapAspectRatio;
-                        mapImage.style.height = `${canvas.height}px`;
+                        const imgRect = mapImage.getBoundingClientRect();
+                        canvas.width = imgRect.width;
+                        canvas.height = imgRect.height;
+                        
+                        // CORREÇÃO JS: Garante que a névoa seja redesenhada sempre que a imagem do mapa carregar/redimensionar
                         drawPlayerFogOfWar();
                     }
                 };
+                
+                // Gatilhos para redimensionar o canvas
                 mapImage.onload = resizeCanvas;
                 window.addEventListener('resize', resizeCanvas);
             }
@@ -618,6 +395,10 @@
                 if (!mapState.ctx) return;
                 const { ctx, revealedAreas } = mapState;
                 const canvas = elements.playerFogOfWarCanvas;
+                
+                // Garante que o canvas tenha um tamanho antes de desenhar
+                if(canvas.width === 0 || canvas.height === 0) return;
+
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -631,14 +412,126 @@
                 }
             }
 
-            // --- EVENT LISTENERS GERAIS ---
-            [elements.charNameInput, elements.strengthInput, elements.dexterityInput, elements.constitutionInput, elements.intelligenceInput, elements.perceptionInput].forEach(input => {
-                input.addEventListener('change', () => {
-                    updateCalculatedStats({ health: elements.healthBar.value });
-                    saveData();
-                });
-            });
-
+            // --- Demais funções JavaScript (Chat, UI, Inventário, etc.) ---
+            // Nenhuma alteração necessária no resto do código
+            function displayChatMessage(message) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'chat-message';
+                const senderSpan = document.createElement('span');
+                senderSpan.className = 'message-sender';
+                senderSpan.textContent = message.senderName || 'Sistema';
+                if (message.senderId === userId) messageDiv.classList.add('own-message');
+                else if (message.senderId === masterId) senderSpan.classList.add('master');
+                const textP = document.createElement('p');
+                textP.className = 'message-text';
+                textP.textContent = message.text;
+                messageDiv.appendChild(senderSpan);
+                messageDiv.appendChild(textP);
+                elements.chatMessages.appendChild(messageDiv);
+                elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+            }
+            function sendChatMessage() {
+                const messageText = elements.chatInputField.value.trim();
+                if (!messageText) return;
+                const message = { senderId: userId, senderName: elements.charNameInput.value || auth.currentUser.displayName, text: messageText, timestamp: firebase.firestore.FieldValue.serverTimestamp(), type: 'chat' };
+                campaignDocRef.collection('events').add(message);
+                elements.chatInputField.value = '';
+            }
+            function updateUI(data) {
+                elements.charNameInput.value = data.name || '';
+                elements.strengthInput.value = data.strength || 10;
+                elements.dexterityInput.value = data.dexterity || 10;
+                elements.constitutionInput.value = data.constitution || 10;
+                elements.intelligenceInput.value = data.intelligence || 10;
+                elements.perceptionInput.value = data.perception || 10;
+                elements.notesTextarea.value = data.notes || '';
+                if (data.characterImage) { elements.characterImage.innerHTML = `<img src="${data.characterImage}" alt="Personagem">`; } else { elements.characterImage.innerHTML = ''; }
+                updateCalculatedStats(data);
+                if (JSON.stringify(localInventory) !== JSON.stringify(data.inventory)) { localInventory = data.inventory && data.inventory.length === 8 ? data.inventory : Array(8).fill(null); renderInventory(); }
+            }
+            function updateCalculatedStats(data) {
+                const constitution = parseInt(elements.constitutionInput.value);
+                const strength = parseInt(elements.strengthInput.value);
+                const intelligence = parseInt(elements.intelligenceInput.value);
+                const dexterity = parseInt(elements.dexterityInput.value);
+                const lifeTotal = Math.floor((constitution + strength) / 2);
+                elements.lifeTotalSpan.textContent = lifeTotal;
+                elements.sanityTotalSpan.textContent = intelligence * dexterity;
+                elements.healthBar.max = lifeTotal;
+                const currentHealth = data ? Math.min(data.health, lifeTotal) : parseInt(elements.healthBar.value);
+                elements.healthBar.value = Math.min(currentHealth, lifeTotal);
+                elements.healthValue.textContent = `${elements.healthBar.value}/${lifeTotal}`;
+                updateHealthBarColor();
+            }
+            function updateHealthBarColor() {
+                const percent = (elements.healthBar.value / elements.healthBar.max) * 100;
+                const barFill = document.getElementById('health-bar-fill');
+                if (!barFill) return;
+                barFill.style.width = percent + '%';
+                if (percent > 60) barFill.style.backgroundColor = '#2E7D32';
+                else if (percent > 30) barFill.style.backgroundColor = '#FBC02D';
+                else barFill.style.backgroundColor = '#C62828';
+            }
+            function saveData() {
+                if (!playerDocRef) return;
+                const dataToSave = { name: elements.charNameInput.value, health: parseInt(elements.healthBar.value), maxHealth: parseInt(elements.healthBar.max), strength: parseInt(elements.strengthInput.value), dexterity: parseInt(elements.dexterityInput.value), constitution: parseInt(elements.constitutionInput.value), intelligence: parseInt(elements.intelligenceInput.value), perception: parseInt(elements.perceptionInput.value), notes: elements.notesTextarea.value, inventory: localInventory, characterImage: elements.characterImage.querySelector('img')?.src || '' };
+                playerDocRef.update(dataToSave).catch(error => console.error("Erro ao salvar dados: ", error));
+            }
+            function discardItem(index) {
+                const item = localInventory[index];
+                if (item && confirm(`Tem certeza que deseja descartar ${item.name}?`)) { localInventory[index] = null; elements.itemDescription.innerHTML = 'Clique em um item para ver a descrição.'; elements.selectedItemDisplay.textContent = 'Nenhum'; saveData(); }
+            }
+            function useHealingItem(index) {
+                const item = localInventory[index];
+                if (item && item.type === 'healing' && item.healAmount) { adjustHealth(item.healAmount); alert(`Você usou ${item.name} e recuperou ${item.healAmount} de vida.`); localInventory[index] = null; elements.itemDescription.innerHTML = 'Clique em um item para ver a descrição.'; elements.selectedItemDisplay.textContent = 'Nenhum'; saveData(); }
+            }
+            function readDocument(index) {
+                const item = localInventory[index];
+                if (item && item.type === 'document') { elements.readDocumentModal.querySelector('#document-title').textContent = item.name; elements.readDocumentModal.querySelector('#document-content').innerHTML = `<p>${(item.content || "Este documento parece estar em branco.").replace(/\n/g, '<br>')}</p>`; elements.readDocumentModal.style.display = 'block'; }
+            }
+            function adjustAmmo(index, amount) {
+                const item = localInventory[index];
+                if (item && item.type === 'weapon') { if (item.ammoCount === undefined) item.ammoCount = 0; const newAmount = item.ammoCount + amount; item.ammoCount = Math.max(0, newAmount); saveData(); selectItem(index); }
+            }
+            function selectItem(index) {
+                selectedSlotIndex = index;
+                document.querySelectorAll('.inventory-slot.selected').forEach(s => s.classList.remove('selected'));
+                if (elements.inventoryGrid.children[index]) { elements.inventoryGrid.children[index].classList.add('selected'); }
+                const item = localInventory[index];
+                if (item) {
+                    elements.selectedItemDisplay.textContent = item.name;
+                    let descriptionHTML = `<p>${item.description || ''}</p><p><strong>Tipo:</strong> ${item.type || ''}</p>`;
+                    if (item.type === 'weapon') { descriptionHTML += ` <div class="ammo-control"> <strong>Munição:</strong> <div class="ammo-buttons"> <button id="decrease-ammo-btn" class="ammo-btn">-</button> <span class="ammo-count">${item.ammoCount || 0}</span> <button id="increase-ammo-btn" class="ammo-btn">+</button> </div> </div> `; }
+                    descriptionHTML += `<div class="item-actions">`;
+                    switch (item.type) { case 'healing': descriptionHTML += `<button id="use-item-btn" class="re-btn">Usar</button>`; break; case 'document': descriptionHTML += `<button id="read-doc-btn" class="re-btn">Ler</button>`; break; }
+                    descriptionHTML += `<button id="discard-item-btn" class="re-btn re-btn-secondary">Descartar</button>`;
+                    descriptionHTML += `</div>`;
+                    elements.itemDescription.innerHTML = descriptionHTML;
+                    document.getElementById('decrease-ammo-btn')?.addEventListener('click', () => adjustAmmo(selectedSlotIndex, -1));
+                    document.getElementById('increase-ammo-btn')?.addEventListener('click', () => adjustAmmo(selectedSlotIndex, 1));
+                    document.getElementById('use-item-btn')?.addEventListener('click', () => useHealingItem(selectedSlotIndex));
+                    document.getElementById('read-doc-btn')?.addEventListener('click', () => readDocument(selectedSlotIndex));
+                    document.getElementById('discard-item-btn')?.addEventListener('click', () => discardItem(selectedSlotIndex));
+                    if (item.type === 'weapon') { elements.equippedWeapon.innerHTML = `Arma: ${item.name}`; }
+                } else { elements.selectedItemDisplay.textContent = 'Nenhum'; elements.itemDescription.innerHTML = 'Clique em um item para ver a descrição.'; }
+            }
+            function renderInventory() {
+                elements.inventoryGrid.innerHTML = '';
+                for (let i = 0; i < 8; i++) {
+                    const item = localInventory[i];
+                    const slot = document.createElement('div');
+                    slot.className = 'inventory-slot';
+                    if (item) {
+                        slot.innerHTML = ''; slot.style.backgroundColor = '#222';
+                        if (item.image) { slot.style.backgroundImage = `url('${item.image}')`; slot.style.backgroundSize = 'cover'; slot.style.backgroundPosition = 'center'; slot.style.backgroundRepeat = 'no-repeat'; }
+                    } else { slot.innerHTML = `<span>+</span>`; slot.style.backgroundImage = 'none'; }
+                    if (i === selectedSlotIndex && !item) { selectedSlotIndex = -1; elements.selectedItemDisplay.textContent = 'Nenhum'; elements.itemDescription.innerHTML = 'Clique em um item para ver a descrição.'; }
+                    slot.addEventListener('click', () => selectItem(i));
+                    elements.inventoryGrid.appendChild(slot);
+                    if (i === selectedSlotIndex && item) { slot.classList.add('selected'); }
+                }
+            }
+            [elements.charNameInput, elements.strengthInput, elements.dexterityInput, elements.constitutionInput, elements.intelligenceInput, elements.perceptionInput].forEach(input => { input.addEventListener('change', () => { updateCalculatedStats({ health: elements.healthBar.value }); saveData(); }); });
             function adjustHealth(amount) {
                 let newHealth = parseInt(elements.healthBar.value) + amount;
                 newHealth = Math.max(0, Math.min(newHealth, elements.healthBar.max));
@@ -648,82 +541,19 @@
             }
             elements.increaseHealthBtn.addEventListener('click', () => adjustHealth(1));
             elements.decreaseHealthBtn.addEventListener('click', () => adjustHealth(-1));
-
             elements.sendChatBtn.addEventListener('click', sendChatMessage);
-            elements.chatInputField.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') sendChatMessage();
-            });
-
-            elements.toggleChatBtn.addEventListener('click', () => {
-                elements.chatContainer.classList.toggle('collapsed');
-            });
-
-
+            elements.chatInputField.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
+            elements.toggleChatBtn.addEventListener('click', () => { elements.chatContainer.classList.toggle('collapsed'); });
             elements.characterImage.addEventListener('click', () => elements.imageUpload.click());
-            elements.imageUpload.addEventListener('change', e => {
-                if (e.target.files[0]) {
-                    const reader = new FileReader();
-                    reader.onload = event => {
-                        elements.characterImage.innerHTML = `<img src="${event.target.result}" alt="Personagem">`;
-                        saveData();
-                    };
-                    reader.readAsDataURL(e.target.files[0]);
-                }
-            });
-
-            // --- LÓGICA DOS MODAIS ---
+            elements.imageUpload.addEventListener('change', e => { if (e.target.files[0]) { const reader = new FileReader(); reader.onload = event => { elements.characterImage.innerHTML = `<img src="${event.target.result}" alt="Personagem">`; saveData(); }; reader.readAsDataURL(e.target.files[0]); } });
             elements.docsBtn.addEventListener('click', () => { elements.docsModal.style.display = 'block'; });
             elements.saveNotesBtn.addEventListener('click', saveData);
             elements.mapBtn.addEventListener('click', () => { elements.mapModal.style.display = 'block'; });
             elements.diceBtn.addEventListener('click', () => { elements.diceModal.style.display = 'block'; });
-            elements.audioToggle.addEventListener('click', () => {
-                const audio = elements.backgroundAudio;
-                if (audio.paused) {
-                    audio.play().catch(e => console.log("Playback falhou", e));
-                    elements.audioIcon.textContent = '🔊';
-                } else {
-                    audio.pause();
-                    elements.audioIcon.textContent = '🔇';
-                }
-            });
-
-            document.querySelectorAll('.dice-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const diceAudio = document.getElementById('dice-audio');
-                    if (diceAudio) {
-                        diceAudio.currentTime = 0;
-                        diceAudio.play();
-                    }
-
-                    const sides = parseInt(btn.dataset.sides);
-                    const result = Math.floor(Math.random() * sides) + 1;
-                    const rollText = `rolou um d${sides} e tirou: ${result}`;
-                    elements.diceResultDiv.textContent = `Resultado d${sides}: ${result}`;
-
-                    const message = {
-                        senderId: userId,
-                        senderName: elements.charNameInput.value || auth.currentUser.displayName,
-                        text: rollText,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                        type: 'dice_roll'
-                    };
-                    campaignDocRef.collection('events').add(message);
-                });
-            });
-
-            document.querySelectorAll('.close-btn').forEach(btn => {
-                btn.onclick = () => {
-                    btn.closest('.modal').style.display = 'none';
-                    if (btn.closest('.modal').id === 'docs-modal') saveData();
-                }
-            });
-            window.onclick = (e) => {
-                if (e.target.classList.contains('modal')) {
-                    e.target.style.display = 'none';
-                    if (e.target.id === 'docs-modal') saveData();
-                }
-            }
-
+            elements.audioToggle.addEventListener('click', () => { const audio = elements.backgroundAudio; if (audio.paused) { audio.play().catch(e => console.log("Playback falhou", e)); elements.audioIcon.textContent = '🔊'; } else { audio.pause(); elements.audioIcon.textContent = '🔇'; } });
+            document.querySelectorAll('.dice-btn').forEach(btn => { btn.addEventListener('click', () => { const diceAudio = document.getElementById('dice-audio'); if (diceAudio) { diceAudio.currentTime = 0; diceAudio.play(); } const sides = parseInt(btn.dataset.sides); const result = Math.floor(Math.random() * sides) + 1; const rollText = `rolou um d${sides} e tirou: ${result}`; elements.diceResultDiv.textContent = `Resultado d${sides}: ${result}`; const message = { senderId: userId, senderName: elements.charNameInput.value || auth.currentUser.displayName, text: rollText, timestamp: firebase.firestore.FieldValue.serverTimestamp(), type: 'dice_roll' }; campaignDocRef.collection('events').add(message); }); });
+            document.querySelectorAll('.close-btn').forEach(btn => { btn.onclick = () => { btn.closest('.modal').style.display = 'none'; if (btn.closest('.modal').id === 'docs-modal') saveData(); } });
+            window.onclick = (e) => { if (e.target.classList.contains('modal')) { e.target.style.display = 'none'; if (e.target.id === 'docs-modal') saveData(); } }
             elements.backToCampaignsBtn.addEventListener('click', () => { window.location.href = 'campaign.html'; });
         });
     </script>

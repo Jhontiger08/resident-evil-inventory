@@ -71,8 +71,11 @@ document.addEventListener('DOMContentLoaded', function () {
         mapUrlInput: document.getElementById('mapUrlInput'),
         addMapBtn: document.getElementById('addMapBtn'),
         mapList: document.getElementById('mapList'),
+        playerActionModal: document.getElementById('playerActionModal'),
+        playerActionKickBtn: document.getElementById('playerActionKickBtn'), // Adicione esta linha
+        mapNameInput: document.getElementById('mapNameInput'),
     };
-    
+
     // --- ESTADO DA APLICAÇÃO ---
     let appState = { players: [], items: [], enemies: [], maps: [], currentUser: null, masterInfo: {}, activeMapId: null, campaignMaxPlayers: 6, map: { ctx: null, revealedAreas: [] } };
 
@@ -120,12 +123,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const actualPlayers = appState.players.filter(p => p.type !== 'npc');
         ui.playerCount.textContent = `(${actualPlayers.length}/${appState.campaignMaxPlayers || 'N/A'})`;
     };
-    
+
     const renderGenericList = (list, container, renderFunc) => {
         container.innerHTML = list.length === 0 ? `<div class="empty-placeholder">Nenhum registro encontrado.</div>` : '';
         list.forEach(item => renderFunc(item, container));
     };
-    
+
     const renderItemCard = (item, container) => {
         const card = document.createElement('div');
         card.className = 'item-card';
@@ -179,8 +182,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const renderChatMessage = (msg) => {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'chat-message';
-        if(msg.senderId === appState.currentUser.uid) messageDiv.classList.add('own-message');
-        
+        if (msg.senderId === appState.currentUser.uid) messageDiv.classList.add('own-message');
+
         messageDiv.innerHTML = `
             <div class="sender-info">
                 <span class="sender">${msg.senderName}</span>
@@ -194,18 +197,18 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- LÓGICA DE MODAIS ---
     const openModal = (modalId, data = {}) => {
         const modal = document.getElementById(modalId);
-        if(!modal) return;
+        if (!modal) return;
         const form = modal.querySelector('form');
-        if(form) form.reset();
-        
+        if (form) form.reset();
+
         const entityName = modalId.replace('Modal', '');
         modal.querySelector('h2').textContent = data.id ? `Editar ${entityName.charAt(0).toUpperCase() + entityName.slice(1)}` : `Criar Novo ${entityName.charAt(0).toUpperCase() + entityName.slice(1)}`;
-        if(form) form.querySelector('input[type="hidden"]').value = data.id || '';
-        
-        if(form) {
-            for(const element of form.elements) {
+        if (form) form.querySelector('input[type="hidden"]').value = data.id || '';
+
+        if (form) {
+            for (const element of form.elements) {
                 const fieldName = element.id.replace(entityName, '').toLowerCase();
-                if(data[fieldName] !== undefined) {
+                if (data[fieldName] !== undefined) {
                     element.value = data[fieldName];
                 }
             }
@@ -216,10 +219,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         modal.style.display = 'block';
     };
-    
-    const closeModal = (modalId) => { 
+
+    const closeModal = (modalId) => {
         const modal = document.getElementById(modalId);
-        if(modal) modal.style.display = 'none'; 
+        if (modal) modal.style.display = 'none';
     };
 
     function updateItemSpecificFields(type, data = {}) {
@@ -233,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function () {
             container.innerHTML = `<div class="form-group"><label for="itemDocumentContent">Conteúdo do Documento:</label><textarea id="itemDocumentContent">${data.content || ''}</textarea></div>`;
         }
     }
-    
+
     const openPlayerActionModal = (player) => {
         const modal = ui.playerActionModal;
         modal.querySelector('#playerActionTitle').textContent = `Ações para: ${player.name}`;
@@ -244,17 +247,37 @@ document.addEventListener('DOMContentLoaded', function () {
         const itemSelect = modal.querySelector('#playerActionItemSelect');
         itemSelect.innerHTML = '<option value="">Selecione um item...</option>';
         appState.items.forEach(item => itemSelect.innerHTML += `<option value="${item.id}">${item.name}</option>`);
-        
+
         modal.style.display = 'block';
     };
 
     // --- LÓGICA DE INTERAÇÃO COM FIRESTORE ---
     const handleDelete = async (collectionName, docId, entityName) => {
         const confirmed = await showConfirmation(`Excluir ${entityName}`, `Tem certeza que deseja excluir? Esta ação não pode ser desfeita.`);
-        if(confirmed) {
+        if (confirmed) {
             campaignRef.collection(collectionName).doc(docId).delete()
                 .then(() => showNotification(`${entityName} excluído com sucesso.`, 'success'))
                 .catch(err => showNotification(`Erro ao excluir: ${err.message}`, 'error'));
+        }
+    };
+
+    const handleKickPlayer = async () => {
+        const playerId = document.getElementById('playerActionTargetId').value;
+        const player = appState.players.find(p => p.id === playerId);
+        if (!player) return;
+
+        const confirmed = await showConfirmation(
+            `Expulsar ${player.name}`,
+            `Tem certeza que deseja remover permanentemente este jogador da campanha?`
+        );
+
+        if (confirmed) {
+            playersRef.doc(playerId).delete()
+                .then(() => {
+                    showNotification(`${player.name} foi expulso da campanha.`, 'success');
+                    closeModal('playerActionModal');
+                })
+                .catch(err => showNotification(`Erro ao expulsar jogador: ${err.message}`, 'error'));
         }
     };
 
@@ -263,7 +286,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const health = parseInt(document.getElementById('playerActionHealth').value);
         const maxHealth = parseInt(document.getElementById('playerActionMaxHealth').value);
         if (isNaN(health) || isNaN(maxHealth)) return showNotification("Valores de vida inválidos.", "error");
-        
+
         playersRef.doc(playerId).update({ health, maxHealth })
             .then(() => showNotification("Vida do jogador atualizada.", "success"))
             .catch(err => showNotification(`Erro: ${err.message}`, "error"));
@@ -289,9 +312,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         inventory[emptySlotIndex] = item;
-        
+
         await playersRef.doc(playerId).update({ inventory: inventory });
-        
+
         eventsRef.add({
             type: 'item_received',
             recipientId: player.id,
@@ -346,7 +369,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const setupMap = () => {
         const canvas = ui.fogOfWarCanvas;
         const mapImage = ui.masterMap;
-        if(!canvas || !mapImage) return;
+        if (!canvas || !mapImage) return;
         appState.map.ctx = canvas.getContext('2d');
         const resizeCanvas = () => {
             canvas.width = mapImage.clientWidth;
@@ -373,7 +396,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const drawRevealedAreas = () => {
         const { ctx, revealedAreas } = appState.map;
-        if(!ctx) return;
+        if (!ctx) return;
         const canvas = ui.fogOfWarCanvas;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
@@ -413,7 +436,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 window.location.href = 'campaign.html';
             }
         });
-        
+
         playersRef.orderBy('name').onSnapshot(snap => {
             appState.players = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderPlayers();
@@ -451,29 +474,29 @@ document.addEventListener('DOMContentLoaded', function () {
         ui.saveNotesBtn.addEventListener('click', () => campaignRef.update({ masterNotes: ui.masterNotes.value }).then(() => showNotification('Anotações salvas.', 'success')));
         ui.endSessionBtn.addEventListener('click', async () => { if (await showConfirmation('Encerrar Sessão', 'Isso desconectará todos os jogadores. Deseja continuar?')) { campaignRef.update({ active: false }).then(() => window.location.href = 'campaign.html'); } });
         ui.masterLogoutBtn.addEventListener('click', () => auth.signOut());
-        
+
         ui.tabs.forEach(btn => btn.addEventListener('click', (e) => {
             ui.tabs.forEach(t => t.classList.remove('active'));
             ui.tabContents.forEach(c => c.classList.remove('active'));
             e.currentTarget.classList.add('active');
             document.getElementById(`${e.currentTarget.dataset.tab}Tab`).classList.add('active');
         }));
-        
+
         document.querySelectorAll('.close-modal').forEach(btn => btn.addEventListener('click', (e) => closeModal(e.target.closest('.master-modal').id)));
         ui.addItemBtn.addEventListener('click', () => openModal('itemModal'));
         ui.addEnemyBtn.addEventListener('click', () => openModal('enemyModal'));
         ui.itemForm.addEventListener('submit', handleFormSubmit);
         ui.enemyForm.addEventListener('submit', handleFormSubmit);
         document.getElementById('itemType').addEventListener('change', (e) => updateItemSpecificFields(e.target.value));
-        
+
         document.getElementById('playerActionUpdateHealthBtn').addEventListener('click', handleUpdatePlayerHealth);
         document.getElementById('playerActionSendItemBtn').addEventListener('click', handleSendItemToPlayer);
-        
+
         ui.addNpcBtn.addEventListener('click', () => {
             const name = prompt('Nome do NPC:');
             if (name) playersRef.add({ name, type: 'npc', health: 10, maxHealth: 10, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
         });
-        
+
         // --- DELEGAÇÃO DE EVENTOS PARA EXCLUSÃO E EDIÇÃO ---
         ui.masterItemList.addEventListener('click', e => {
             const target = e.target;
@@ -498,7 +521,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (enemyData) openModal('enemyModal', enemyData);
             }
         });
-        
+
         ui.mapList.addEventListener('click', e => {
             const target = e.target;
             if (target.classList.contains('delete-btn')) {
@@ -526,7 +549,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const sides = parseInt(e.target.dataset.sides);
             const result = Math.floor(Math.random() * sides) + 1;
             const rollText = `(Mestre) rolou d${sides}: ${result}`;
-            
+
             eventsRef.add({ type: 'dice_roll', senderId: appState.currentUser.uid, senderName: appState.masterInfo.name || 'Mestre', text: rollText, timestamp: firebase.firestore.FieldValue.serverTimestamp() })
                 .then(() => showNotification('Rolagem enviada para o chat!', 'info'));
         }));
@@ -538,8 +561,8 @@ document.addEventListener('DOMContentLoaded', function () {
             ui.masterChatInput.value = '';
         };
         ui.sendMasterMsgBtn.addEventListener('click', sendChatMessage);
-        ui.masterChatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChatMessage(); });
-        
+        ui.masterChatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
+
         // Listener para o botão do chat reativado
         if (ui.toggleChatBtn) {
             ui.toggleChatBtn.addEventListener('click', () => {
@@ -550,6 +573,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- INICIALIZAÇÃO DA APLICAÇÃO ---
     setupRealtimeListeners();
+    document.getElementById('playerActionSendItemBtn').addEventListener('click', handleSendItemToPlayer);
+    ui.playerActionKickBtn.addEventListener('click', handleKickPlayer); // Adicione esta linha
     setupUIEvents();
     setupMap();
 });
