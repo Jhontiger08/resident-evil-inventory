@@ -7,57 +7,110 @@
     --text-secondary: rgba(255, 255, 255, 0.7);
     --font-main: 'IM Fell English SC', serif;
     --danger-color: #c05050;
-    --warning-color: #FF9800;
+    --danger-hover: #e57373;
     --success-color: #5cb85c;
-    --orange-color: #FF7043;
+    --info-color: #17a2b8;
+    --warning-color: #FF9800;
 }
 
-html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
-
-.master-container {
-    display: flex; flex-direction: column; height: 100vh;
+/* --- GERAL E LAYOUT --- */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
     background: radial-gradient(circle at center, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.95) 100%),
-                url('https://i.imgur.com/3Yd2LVd.jpeg') center/cover fixed no-repeat;
+                url('imgs/maps/background.jpg') center/cover fixed no-repeat;
     color: var(--text-primary);
     font-family: var(--font-main);
 }
 
-/* Header */
-.master-header { background-color: var(--background-medium); border-bottom: 1px solid var(--primary-color); padding: 0.8rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-.campaign-info h1 { color: var(--primary-color); font-size: 1.5rem; margin: 0; text-shadow: 1px 1px 2px #000; }
+.master-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    margin-right: 380px; /* Largura do painel do chat no desktop */
+}
+
+.master-header {
+    background-color: var(--background-medium);
+    border-bottom: 1px solid var(--primary-color);
+    padding: 0.8rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.master-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+h2, h3 {
+    color: var(--primary-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+    margin: 0 0 1rem;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* --- BOTÕES PADRÃO (re-btn) --- */
+.re-btn {
+    padding: 0.8rem 1.2rem;
+    background-color: rgba(60, 60, 60, 0.9);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-family: var(--font-main);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+}
+.re-btn:hover {
+    background-color: var(--primary-color);
+    color: #111;
+    border-color: var(--primary-color);
+}
+.re-btn-secondary { background-color: transparent; }
+.re-btn-secondary:hover { background-color: rgba(192, 160, 80, 0.2); color: var(--text-primary); }
+.re-btn-danger { border-color: var(--danger-color); color: var(--danger-hover); }
+.re-btn-danger:hover { background-color: var(--danger-color); border-color: var(--danger-color); color: #fff; }
+
+/* --- HEADER --- */
+.campaign-info h1 { font-size: 1.5rem; margin: 0; text-shadow: 1px 1px 2px #000; color: var(--primary-color); }
 .campaign-info p { margin: 0.3rem 0 0; font-size: 0.9rem; color: var(--text-secondary); }
 #campaignCode span { color: var(--primary-color); font-weight: bold; }
-#copyCode { background: none; border: none; color: var(--primary-color); cursor: pointer; text-decoration: underline; font-size: 0.9rem; }
-.master-controls { display: flex; gap: 0.8rem; }
-.master-controls button, .chat-send-btn, .dice-btn, .small-btn { padding: 0.5rem 1rem; background-color: rgba(74, 74, 74, 0.8); color: white; border: 1px solid transparent; border-radius: 4px; font-family: var(--font-main); cursor: pointer; transition: all 0.3s ease; }
-.master-controls button:hover, .chat-send-btn:hover, .dice-btn:hover, .small-btn:hover { background-color: var(--primary-color); color: black; }
-#endSessionBtn:hover { background-color: var(--danger-color); }
+#copyCode { background: none; border: none; color: var(--primary-color); cursor: pointer; font-size: 1rem; }
+.master-controls { display: flex; gap: 0.8rem; align-items: center; }
 
-/* Corpo Principal */
-.master-body { display: flex; flex: 1; overflow: hidden; }
-
-/* Painel de Jogadores */
+/* --- PAINEL DE JOGADORES --- */
 .players-panel { width: 280px; background-color: var(--background-dark); border-right: 1px solid var(--border-color); padding: 1rem; display: flex; flex-direction: column; flex-shrink: 0; }
-.players-panel h2 { color: var(--primary-color); font-size: 1.2rem; margin: 0 0 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
-.player-list { flex: 1; overflow-y: auto; margin-bottom: 1rem; padding-right: 5px;}
+.player-list { flex: 1; overflow-y: auto; margin-bottom: 1rem; }
 .player-item { background-color: rgba(42, 42, 42, 0.7); border: 1px solid rgba(192, 160, 80, 0.2); border-radius: 4px; padding: 0.8rem; margin-bottom: 0.8rem; cursor: pointer; transition: all 0.3s ease; }
 .player-item:hover { border-color: var(--primary-color); background-color: rgba(50, 50, 50, 0.9); }
-.player-item h3 { color: var(--primary-color); margin: 0 0 0.3rem; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center;}
+.player-item h3 { color: var(--primary-color); margin: 0 0 0.3rem; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center; border: none; }
 .player-item p { margin: 0; font-size: 0.8rem; color: rgba(255, 255, 255, 0.6); }
-.player-health { display: flex; align-items: center; margin-top: 0.5rem; }
-.player-health progress { flex: 1; height: 0.8rem; -webkit-appearance: none; appearance: none; border-radius: 4px; border: none; background-color: #333;}
+.player-health progress { width: 100%; height: 0.8rem; -webkit-appearance: none; appearance: none; border-radius: 4px; border: none; background-color: #333; margin-top: 0.5rem; }
 .player-health progress::-webkit-progress-bar { background-color: #333; border-radius: 4px; }
 .player-health progress::-webkit-progress-value { border-radius: 4px; transition: all 0.5s ease; }
-.health-green::-webkit-progress-value, .health-green::-moz-progress-bar { background-color: var(--success-color); }
-.health-yellow::-webkit-progress-value, .health-yellow::-moz-progress-bar { background-color: var(--warning-color); }
-.health-orange::-webkit-progress-value, .health-orange::-moz-progress-bar { background-color: var(--orange-color); }
-.health-red::-webkit-progress-value, .health-red::-moz-progress-bar { background-color: var(--danger-color); }
-.player-actions button { width: 100%; padding: 0.6rem; }
+.health-green::-webkit-progress-value { background-color: var(--success-color); }
+.health-yellow::-webkit-progress-value { background-color: var(--warning-color); }
+.health-red::-webkit-progress-value { background-color: var(--danger-color); }
 
-/* Painel de Ferramentas */
+/* --- PAINEL DE FERRAMENTAS (TABS) --- */
 .tools-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .tabs { display: flex; border-bottom: 1px solid var(--border-color); background-color: rgba(10, 10, 10, 0.3); flex-shrink: 0; }
-.tab-btn { padding: 0.8rem 1.2rem; background: none; border: none; color: var(--text-secondary); font-family: var(--font-main); cursor: pointer; position: relative; transition: all 0.3s ease; }
+.tab-btn { padding: 0.8rem 1.2rem; background: none; border: none; color: var(--text-secondary); font-family: var(--font-main); cursor: pointer; position: relative; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 0.5rem; }
 .tab-btn:hover { color: var(--primary-color); }
 .tab-btn.active { color: var(--primary-color); font-weight: bold; }
 .tab-btn.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background-color: var(--primary-color); }
@@ -65,195 +118,174 @@ html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
 .tab-content.active { display: block; }
 .controls-bar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
 .controls-bar input { flex: 1; padding: 0.6rem; background-color: rgba(51, 51, 51, 0.8); border: 1px solid rgba(85, 85, 85, 0.5); color: white; border-radius: 4px; min-width: 150px; }
-.controls-bar button { padding: 0.6rem 1rem; }
 #masterNotes { height: calc(100% - 10px); width: 100%; box-sizing: border-box; background-color: rgba(30, 30, 30, 0.8); border: 1px solid rgba(85, 85, 85, 0.5); color: white; padding: 1rem; border-radius: 4px; resize: none; font-family: 'Courier New', monospace; }
-.card-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
-.item-card, .enemy-card { background-color: rgba(42, 42, 42, 0.7); border: 1px solid rgba(192, 160, 80, 0.2); border-radius: 4px; padding: 0.8rem; cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; }
-.card-header { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 0.5rem;}
+
+/* --- CARDS (ITENS, INIMIGOS) E BOTÃO DE EXCLUSÃO --- */
+.card-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
+.item-card, .enemy-card { background-color: rgba(42, 42, 42, 0.7); border: 1px solid rgba(192, 160, 80, 0.2); border-radius: 4px; padding: 0.8rem; transition: all 0.3s ease; display: flex; flex-direction: column; position: relative; }
+.item-card:hover, .enemy-card:hover { border-color: var(--primary-color); transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+.card-content-wrapper { cursor: pointer; flex-grow: 1; display: flex; flex-direction: column; }
+.card-header { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 0.5rem; }
 .card-image { width: 50px; height: 50px; flex-shrink: 0; background-color: #000; border-radius: 4px; object-fit: cover; border: 1px solid var(--border-color); }
 .card-title { flex-grow: 1; }
-.item-card:hover, .enemy-card:hover { border-color: var(--primary-color); transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
-.item-card h3, .enemy-card h3 { color: var(--primary-color); margin: 0 0 0.5rem; font-size: 1rem; }
-.item-card p, .enemy-card p { margin: 0 0 0.5rem; font-size: 0.8rem; color: var(--text-secondary); flex-grow: 1; }
-.item-type { display: inline-block; padding: 0.2rem 0.5rem; background-color: rgba(192, 160, 80, 0.2); border-radius: 4px; font-size: 0.7rem; align-self: flex-start; }
-.card-details { font-size: 0.8rem; color: var(--text-secondary); margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 0.5rem;}
-.enemy-card .stats { font-weight: bold; color: var(--text-primary); }
+.card-list h3 { color: var(--primary-color); margin: 0 0 0.5rem; font-size: 1rem; border: none; }
+.card-list p { margin: 0 0 0.5rem; font-size: 0.8rem; color: var(--text-secondary); flex-grow: 1; }
+.delete-btn { position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; background-color: rgba(40, 40, 40, 0.8); color: var(--text-secondary); border: 1px solid var(--border-color); border-radius: 50%; cursor: pointer; font-size: 14px; line-height: 22px; text-align: center; transition: all 0.3s ease; z-index: 10; }
+.delete-btn:hover { background-color: var(--danger-color); color: white; transform: scale(1.1); }
+.map-list-item .delete-btn { position: static; flex-shrink: 0; margin-left: 1rem; }
 
-/* Aba Mapa */
-.map-management { margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;}
+/* --- MAPAS --- */
 .map-management h3 { border: none; }
-.map-list { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
-.map-list-item { background-color: rgba(42, 42, 42, 0.7); border: 1px solid var(--border-color); padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; transition: all 0.3s ease;}
-.map-list-item:hover { background-color: var(--primary-color); color: #000; }
-.map-list-item.active { background-color: var(--primary-color); color: #000; border-color: var(--primary-color);}
+.map-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
+.map-list-item { display: flex; justify-content: space-between; align-items: center; background-color: rgba(42, 42, 42, 0.7); border: 1px solid var(--border-color); padding: 0.5rem 1rem; border-radius: 4px; transition: all 0.3s ease; }
+.map-list-item .map-name { cursor: pointer; flex-grow: 1; }
+.map-list-item:hover { background-color: rgba(192, 160, 80, 0.2); }
+.map-list-item.active { background-color: var(--primary-color); color: #000; border-color: var(--primary-color); }
 .map-container { position: relative; width: 100%; max-width: 900px; margin: auto; }
 .map-display { position: relative; border: 1px solid var(--border-color); min-height: 200px; background: #000; }
 #masterMap { max-width: 100%; display: block; }
 #fogOfWarCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: crosshair; }
-.map-tools { display: flex; gap: 1rem; margin-top: 1rem; justify-content: center; }
 
-/* Aba Dados */
+/* --- DADOS --- */
 .dice-roller { text-align: center; max-width: 500px; margin: 1rem auto; }
 .dice-controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; }
-.dice-btn { padding: 0.8rem 1.2rem; }
 
-/* Chat */
-.master-chat { height: 220px; background-color: var(--background-medium); border-top: 1px solid var(--primary-color); display: flex; flex-direction: column; flex-shrink: 0; transition: height 0.3s ease; }
-.chat-header { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; background-color: rgba(10, 10, 10, 0.5); border-bottom: 1px solid var(--border-color); cursor: pointer; }
-.chat-header h2 { color: var(--primary-color); font-size: 1rem; margin: 0; }
-#toggleChatBtn { background: none; border: none; color: var(--primary-color); cursor: pointer; text-decoration: underline; }
-.chat-messages { flex: 1; padding: 0.8rem; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 0.8rem; }
-.chat-message { display: flex; flex-direction: column; max-width: 95%; }
-.sender-info { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.2rem; }
-.sender-info .sender { color: var(--primary-color); font-weight: bold; font-size: 0.9rem;}
-.sender-info .time { color: rgba(255, 255, 255, 0.4); font-size: 0.7rem; }
-.chat-message .text { word-wrap: break-word; font-size: 0.9rem; margin-left: 0.2rem;}
-.chat-message.own-message .sender-info .sender { color: #88aadd; }
-.chat-input { display: flex; padding: 0.5rem; background-color: rgba(10, 10, 10, 0.5); border-top: 1px solid var(--border-color); }
+/* --- CHAT (DESKTOP) --- */
+.master-chat {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 380px;
+    height: 100vh;
+    background-color: #181818; 
+    border-left: 1px solid var(--primary-color);
+    display: flex;
+    flex-direction: column;
+    z-index: 1001;
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.chat-header {
+    padding: 0.8rem 1rem;
+    background-color: var(--background-medium);
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.chat-messages {
+    flex: 1;
+    padding: 0.8rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 0.8rem;
+}
+.sender-info .sender { color: var(--primary-color); font-weight: bold; font-size: 0.9rem; }
+.chat-message:not(.own-message) .sender-info .sender { color: #88aadd; }
+.sender-info .time { color: var(--text-secondary); font-size: 0.7rem; }
+.chat-message .text {
+    word-wrap: break-word;
+    font-size: 0.9rem;
+    margin-left: 0.2rem;
+    color: var(--text-primary);
+    background-color: rgba(45, 45, 45, 0.9);
+    padding: 0.5rem 0.8rem;
+    border-radius: 8px;
+    margin-top: 0.2rem;
+}
+.chat-input { display: flex; padding: 0.5rem; border-top: 1px solid var(--border-color); flex-shrink: 0; }
 #masterChatInput { flex: 1; padding: 0.6rem; background-color: rgba(51, 51, 51, 0.8); border: 1px solid rgba(85, 85, 85, 0.5); color: white; border-radius: 4px; margin-right: 0.5rem; }
-.master-chat.collapsed { height: 42px; }
-.master-chat.collapsed .chat-messages, .master-chat.collapsed .chat-input { display: none; }
+#sendMasterMsgBtn { padding: 0 1rem; }
 
-/* Modais */
-.master-modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85); animation: fadeIn 0.3s; overflow-y: auto; }
-.modal-content { background-color: var(--background-medium); margin: 5% auto; padding: 1.5rem 2rem; border: 1px solid var(--primary-color); border-radius: 4px; width: 90%; max-width: 550px; position: relative; box-shadow: 0 0 30px rgba(0, 0, 0, 0.8); animation: slideDown 0.3s; }
+/* --- MODAIS --- */
+.master-modal { display: none; position: fixed; z-index: 1002; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85); animation: fadeIn 0.3s; overflow-y: auto; }
+.modal-content { background-color: var(--background-medium); margin: 5% auto; padding: 1.5rem 2rem; border: 1px solid var(--primary-color); border-radius: 4px; width: 90%; max-width: 550px; position: relative; box-shadow: 0 0 30px rgba(0, 0, 0, 0.8); }
 .close-modal { position: absolute; top: 0.5rem; right: 1rem; color: var(--primary-color); font-size: 2rem; font-weight: bold; cursor: pointer; transition: all 0.3s ease; line-height: 1;}
 .close-modal:hover { color: white; transform: rotate(90deg); }
-.modal-content h2 { color: var(--primary-color); margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+.modal-content h2 { border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
 .form-group { margin-bottom: 1rem; }
 .form-group label { display: block; margin-bottom: 0.3rem; color: var(--primary-color); }
 .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.6rem; background-color: rgba(51, 51, 51, 0.8); border: 1px solid rgba(85, 85, 85, 0.5); color: white; border-radius: 4px; font-family: inherit; box-sizing: border-box; }
 #item-specific-fields { margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border-color); }
-.modal-btn { width: 100%; padding: 0.8rem; margin-top: 1rem; }
 .modal-actions { display: flex; gap: 1rem; margin-top: 1.5rem; }
 
-/* Notificações */
-#notification-container { position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 10px; }
-.notification { padding: 15px; border-radius: 5px; color: white; min-width: 250px; box-shadow: 0 2px 10px rgba(0,0,0,0.5); opacity: 0; animation: fadeInNotify 0.5s forwards; border-left: 5px solid; }
-.notification.success { background-color: #28a745dd; border-color: #1a7431; }
-.notification.error { background-color: #dc3545dd; border-color: #b02a37; }
-.notification.info { background-color: #17a2b8dd; border-color: #117a8b; }
-@keyframes fadeInNotify { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
-
-.empty-placeholder { text-align: center; padding: 2rem; color: var(--text-secondary); font-style: italic; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideDown { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-@media (max-width: 768px) {
-    .master-header { flex-direction: column; gap: 0.8rem; align-items: stretch; }
-    .master-body { flex-direction: column; overflow-y: auto; }
-    .players-panel { width: 100%; border-right: none; border-bottom: 1px solid var(--border-color); box-sizing: border-box; }
-    .tabs { overflow-x: auto; white-space: nowrap; }
-}
-
-/* Adicione este CSS ao master.html ou master.css */
-.re-btn {
-    padding: 0.8rem 1.4rem;
-    background-color: rgba(60, 60, 60, 0.9);
-    color: #e0e0e0;
-    border: 1px solid #c0a050;
-    border-radius: 4px;
-    font-family: 'IM Fell English SC', serif;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-}
-.re-btn:hover {
-    background-color: #c0a050;
-    color: #111;
-}
-.re-btn-secondary {
-    background-color: transparent;
-    border-color: rgba(192, 160, 80, 0.5);
-}
-.re-btn-secondary:hover {
-    background-color: rgba(192, 160, 80, 0.2);
-    color: #e0e0e0;
-}
-.re-btn-danger {
-    border-color: #9a3a3a;
-    color: #ffb8b8;
-}
-.re-btn-danger:hover {
-    background-color: #9a3a3a;
-    color: #fff;
-}
-
-/* === ESTILOS PARA O MODAL DE AÇÕES DO JOGADOR === */
-#playerActionModal .modal-content {
-    background-color: rgba(20, 20, 20, 0.98);
-    border: 1px solid #c0a050;
-    box-shadow: 0 0 25px rgba(0, 0, 0, 0.7);
-}
-
-#playerActionModal h2 {
-    color: #c0a050;
-    text-align: center;
-    margin-bottom: 1.5rem;
-    font-size: 1.6rem;
-}
-
-#playerActionModal .form-section {
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid rgba(192, 160, 80, 0.2);
-}
-
-#playerActionModal .form-section h3 {
-    color: #c0a050;
-    margin-bottom: 1rem;
-    font-size: 1.2rem;
+/* --- NOTIFICAÇÕES (ESTILO ORIGINAL RESTAURADO) --- */
+#notification-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 2000;
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 10px;
 }
-
-#playerActionModal input[type="number"],
-#playerActionModal select {
-    width: 100%;
-    padding: 0.8rem;
-    background-color: rgba(51, 51, 51, 0.8);
-    border: 1px solid rgba(85, 85, 85, 0.5);
+.notification {
+    padding: 15px;
+    border-radius: 5px;
     color: white;
-    border-radius: 4px;
-    font-family: 'IM Fell English SC', serif;
-    font-size: 1rem;
-    box-sizing: border-box;
-    transition: all 0.3s ease;
+    min-width: 250px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    opacity: 0;
+    animation: fadeInNotify 0.5s forwards;
+    border-left: 5px solid;
 }
+.notification.success { background-color: rgba(40, 167, 69, 0.9); border-color: var(--success-color); }
+.notification.error { background-color: rgba(220, 53, 69, 0.9); border-color: var(--danger-color); }
+.notification.info { background-color: rgba(23, 162, 184, 0.9); border-color: var(--info-color); }
+@keyframes fadeInNotify { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-#playerActionModal input[type="number"]:focus,
-#playerActionModal select:focus {
-    border-color: #c0a050;
-    outline: none;
-    box-shadow: 0 0 10px rgba(192, 160, 80, 0.2);
-}
-
-#playerActionModal .health-control,
-#playerActionModal .item-send {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-}
-
-#playerActionModal .health-control span {
-    color: #c0a050;
-}
-
-#playerActionModal .small-btn {
-    padding: 0.8rem;
-    background-color: rgba(74, 74, 74, 0.8);
-    color: #c0a050;
-    border: 1px solid rgba(192, 160, 80, 0.5);
-    border-radius: 4px;
-    font-family: 'IM Fell English SC', serif;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-#playerActionModal .small-btn:hover {
-    background-color: #c0a050;
-    color: black;
+/* ==========================================================================
+   RESPONSIVIDADE (MOBILE)
+   ========================================================================== */
+@media (max-width: 768px) {
+    .master-container {
+        margin-right: 0; /* Remove a margem do chat no mobile */
+        padding-bottom: 50px; /* Adiciona espaço para o chat não cobrir o conteúdo */
+    }
+    .master-body { 
+        flex-direction: column; 
+        overflow-y: auto; 
+    }
+    .players-panel { 
+        width: 100%; 
+        border-right: none; 
+        border-bottom: 1px solid var(--border-color); 
+        box-sizing: border-box; 
+    }
+    .master-header { 
+        flex-direction: column; 
+        gap: 0.8rem; 
+        align-items: stretch; 
+        text-align: center;
+    }
+    .tabs { 
+        overflow-x: auto; 
+        white-space: nowrap; 
+    }
+    
+    /* --- Estilo do Chat para Mobile --- */
+    .master-chat {
+        width: 100%;
+        height: auto;
+        max-height: 50vh; /* O chat ocupará no máximo metade da tela */
+        bottom: 0;
+        top: auto;
+        right: auto;
+        left: 0;
+        border-left: none;
+        border-top: 1px solid var(--primary-color);
+        transition: max-height 0.3s ease-in-out;
+    }
+    #toggleChatBtn { display: block; } /* Garante que o botão apareça */
+    #toggleChatBtn i { transition: transform 0.3s ease; }
+    
+    .master-chat.collapsed {
+        max-height: 48px; /* Altura do cabeçalho do chat */
+        overflow: hidden;
+    }
+    .master-chat.collapsed #toggleChatBtn i {
+        transform: rotate(180deg); /* Vira a seta para baixo */
+    }
 }

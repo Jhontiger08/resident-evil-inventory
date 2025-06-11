@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function () {
         masterChatMessages: document.getElementById('masterChatMessages'),
         masterChatInput: document.getElementById('masterChatInput'),
         sendMasterMsgBtn: document.getElementById('sendMasterMsgBtn'),
-        toggleChatBtn: document.getElementById('toggleChatBtn'),
+        toggleChatBtn: document.getElementById('toggleChatBtn'), // Referência reativada
         confirmModal: document.getElementById('confirmModal'),
         playerActionModal: document.getElementById('playerActionModal'),
         mapNameInput: document.getElementById('mapNameInput'),
@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
     
     // --- ESTADO DA APLICAÇÃO ---
-    let appState = { players: [], items: [], enemies: [], maps: [], currentUser: null, masterInfo: {}, activeMapId: null, map: { ctx: null, revealedAreas: [] } };
+    let appState = { players: [], items: [], enemies: [], maps: [], currentUser: null, masterInfo: {}, activeMapId: null, campaignMaxPlayers: 6, map: { ctx: null, revealedAreas: [] } };
 
     // --- FUNÇÕES DE FEEDBACK VISUAL ---
     const showNotification = (message, type = 'info') => {
@@ -101,6 +101,7 @@ document.addEventListener('DOMContentLoaded', function () {
         appState.players.forEach(player => {
             const p = document.createElement('div');
             p.className = `player-item ${player.type === 'npc' ? 'npc-player' : ''}`;
+            p.dataset.playerId = player.id;
             const health = player.health || 0;
             const maxHealth = player.maxHealth || 1;
             const healthPercent = (health / maxHealth) * 100;
@@ -117,7 +118,7 @@ document.addEventListener('DOMContentLoaded', function () {
             ui.playerList.appendChild(p);
         });
         const actualPlayers = appState.players.filter(p => p.type !== 'npc');
-ui.playerCount.textContent = `(${actualPlayers.length}/${appState.campaignMaxPlayers || 'N/A'})`;
+        ui.playerCount.textContent = `(${actualPlayers.length}/${appState.campaignMaxPlayers || 'N/A'})`;
     };
     
     const renderGenericList = (list, container, renderFunc) => {
@@ -128,20 +129,16 @@ ui.playerCount.textContent = `(${actualPlayers.length}/${appState.campaignMaxPla
     const renderItemCard = (item, container) => {
         const card = document.createElement('div');
         card.className = 'item-card';
-        let details = '';
-        if (item.type === 'healing' && item.healAmount) details = `Cura: +${item.healAmount}`;
-        if (item.type === 'weapon' && item.ammoCount) details = `Munição: ${item.ammoCount}`;
-        if (item.type === 'document' && item.content) details = `Conteúdo disponível`;
-
         card.innerHTML = `
-            <div class="card-header">
-                ${item.image ? `<img src="${item.image}" alt="${item.name}" class="card-image">` : ''}
-                <div class="card-title"><h3>${item.name}</h3><span class="item-type">${item.type}</span></div>
+            <button class="delete-btn" data-id="${item.id}" title="Excluir Item">&times;</button>
+            <div class="card-content-wrapper" data-entity-id="${item.id}">
+                <div class="card-header">
+                    ${item.image ? `<img src="${item.image}" alt="${item.name}" class="card-image">` : ''}
+                    <div class="card-title"><h3>${item.name}</h3><span class="item-type">${item.type}</span></div>
+                </div>
+                <p>${item.description || 'Sem descrição.'}</p>
             </div>
-            <p>${item.description || 'Sem descrição.'}</p>
-            ${details ? `<div class="card-details">${details}</div>` : ''}
         `;
-        card.addEventListener('click', () => openModal('itemModal', item));
         container.appendChild(card);
     };
 
@@ -149,31 +146,33 @@ ui.playerCount.textContent = `(${actualPlayers.length}/${appState.campaignMaxPla
         const card = document.createElement('div');
         card.className = 'enemy-card';
         card.innerHTML = `
-            <div class="card-header">
-                ${enemy.image ? `<img src="${enemy.image}" alt="${enemy.name}" class="card-image">` : ''}
-                <div class="card-title"><h3>${enemy.name}</h3></div>
+            <button class="delete-btn" data-id="${enemy.id}" title="Excluir Inimigo">&times;</button>
+            <div class="card-content-wrapper" data-entity-id="${enemy.id}">
+                <div class="card-header">
+                    ${enemy.image ? `<img src="${enemy.image}" alt="${enemy.name}" class="card-image">` : ''}
+                    <div class="card-title"><h3>${enemy.name}</h3></div>
+                </div>
+                <p class="stats">Vida: ${enemy.health} | Dano: ${enemy.damage || 'N/A'}</p>
+                <p>${enemy.behavior || 'Sem comportamento.'}</p>
             </div>
-            <p class="stats">Vida: ${enemy.health} | Dano: ${enemy.damage || 'N/A'}</p>
-            <p>${enemy.behavior || 'Sem comportamento.'}</p>
         `;
-        card.addEventListener('click', () => openModal('enemyModal', enemy));
         container.appendChild(card);
     };
 
     const renderMapList = () => {
         ui.mapList.innerHTML = '';
         appState.maps.forEach(map => {
-            const mapBtn = document.createElement('button');
-            mapBtn.className = 'map-list-item';
-            mapBtn.textContent = map.name;
+            const mapItem = document.createElement('div');
+            mapItem.className = 'map-list-item';
             if (appState.activeMapId === map.id) {
-                mapBtn.classList.add('active');
-                if (ui.masterMap.src !== map.url) {
-                    ui.masterMap.src = map.url;
-                }
+                mapItem.classList.add('active');
+                if (ui.masterMap.src !== map.url) ui.masterMap.src = map.url;
             }
-            mapBtn.onclick = () => campaignRef.update({ activeMapId: map.id });
-            ui.mapList.appendChild(mapBtn);
+            mapItem.innerHTML = `
+                <span class="map-name" data-id="${map.id}">${map.name}</span>
+                <button class="delete-btn" data-id="${map.id}" title="Excluir Mapa">&times;</button>
+            `;
+            ui.mapList.appendChild(mapItem);
         });
     };
 
@@ -195,17 +194,20 @@ ui.playerCount.textContent = `(${actualPlayers.length}/${appState.campaignMaxPla
     // --- LÓGICA DE MODAIS ---
     const openModal = (modalId, data = {}) => {
         const modal = document.getElementById(modalId);
+        if(!modal) return;
         const form = modal.querySelector('form');
-        form.reset();
-        const entity = modalId.replace('Modal', '');
-        modal.querySelector('h2').textContent = data.id ? `Editar ${entity}` : `Criar Novo ${entity}`;
-        form.querySelector('input[type="hidden"]').value = data.id || '';
+        if(form) form.reset();
         
-        // Preenche campos genéricos
-        for(const element of form.elements) {
-            const fieldName = element.id.replace(entity, '').toLowerCase();
-            if(data[fieldName] !== undefined) {
-                element.value = data[fieldName];
+        const entityName = modalId.replace('Modal', '');
+        modal.querySelector('h2').textContent = data.id ? `Editar ${entityName.charAt(0).toUpperCase() + entityName.slice(1)}` : `Criar Novo ${entityName.charAt(0).toUpperCase() + entityName.slice(1)}`;
+        if(form) form.querySelector('input[type="hidden"]').value = data.id || '';
+        
+        if(form) {
+            for(const element of form.elements) {
+                const fieldName = element.id.replace(entityName, '').toLowerCase();
+                if(data[fieldName] !== undefined) {
+                    element.value = data[fieldName];
+                }
             }
         }
 
@@ -215,7 +217,10 @@ ui.playerCount.textContent = `(${actualPlayers.length}/${appState.campaignMaxPla
         modal.style.display = 'block';
     };
     
-    const closeModal = (modalId) => { document.getElementById(modalId).style.display = 'none'; };
+    const closeModal = (modalId) => { 
+        const modal = document.getElementById(modalId);
+        if(modal) modal.style.display = 'none'; 
+    };
 
     function updateItemSpecificFields(type, data = {}) {
         const container = document.getElementById('item-specific-fields');
@@ -244,6 +249,15 @@ ui.playerCount.textContent = `(${actualPlayers.length}/${appState.campaignMaxPla
     };
 
     // --- LÓGICA DE INTERAÇÃO COM FIRESTORE ---
+    const handleDelete = async (collectionName, docId, entityName) => {
+        const confirmed = await showConfirmation(`Excluir ${entityName}`, `Tem certeza que deseja excluir? Esta ação não pode ser desfeita.`);
+        if(confirmed) {
+            campaignRef.collection(collectionName).doc(docId).delete()
+                .then(() => showNotification(`${entityName} excluído com sucesso.`, 'success'))
+                .catch(err => showNotification(`Erro ao excluir: ${err.message}`, 'error'));
+        }
+    };
+
     const handleUpdatePlayerHealth = () => {
         const playerId = document.getElementById('playerActionTargetId').value;
         const health = parseInt(document.getElementById('playerActionHealth').value);
@@ -255,27 +269,40 @@ ui.playerCount.textContent = `(${actualPlayers.length}/${appState.campaignMaxPla
             .catch(err => showNotification(`Erro: ${err.message}`, "error"));
     };
 
-    const handleSendItemToPlayer = () => {
-    const playerId = document.getElementById('playerActionTargetId').value;
-    const itemId = document.getElementById('playerActionItemSelect').value;
-    if (!itemId) return showNotification("Selecione um item.", "error");
+    const handleSendItemToPlayer = async () => {
+        const playerId = document.getElementById('playerActionTargetId').value;
+        const itemId = document.getElementById('playerActionItemSelect').value;
+        if (!itemId) return showNotification("Selecione um item.", "error");
 
-    // Encontra o objeto completo do item no estado da aplicação
-    const item = appState.items.find(i => i.id === itemId);
-    const player = appState.players.find(p => p.id === playerId);
-    
-    // O evento agora envia o objeto 'item' COMPLETO, com todos os seus dados.
-    eventsRef.add({
-        type: 'item_received',
-        recipientId: player.id,
-        item: item, // <<< ESSA É A LINHA CORRIGIDA E ESSENCIAL
-        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        text: `${appState.masterInfo.name || 'Mestre'} enviou ${item.name} para ${player.name}.`
-    }).then(() => {
-        showNotification(`Item enviado para ${player.name}.`, 'success');
-        closeModal('playerActionModal');
-    });
-};
+        const item = appState.items.find(i => i.id === itemId);
+        const player = appState.players.find(p => p.id === playerId);
+
+        const playerDoc = await playersRef.doc(playerId).get();
+        if (!playerDoc.exists) return showNotification("Jogador não encontrado.", "error");
+
+        const playerData = playerDoc.data();
+        const inventory = playerData.inventory || Array(8).fill(null);
+        const emptySlotIndex = inventory.findIndex(slot => slot === null);
+
+        if (emptySlotIndex === -1) {
+            return showNotification(`Inventário de ${player.name} está cheio!`, 'error');
+        }
+
+        inventory[emptySlotIndex] = item;
+        
+        await playersRef.doc(playerId).update({ inventory: inventory });
+        
+        eventsRef.add({
+            type: 'item_received',
+            recipientId: player.id,
+            item: item,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            text: `${appState.masterInfo.name || 'Mestre'} enviou ${item.name} para ${player.name}.`
+        }).then(() => {
+            showNotification(`Item enviado para ${player.name}.`, 'success');
+            closeModal('playerActionModal');
+        });
+    };
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
@@ -319,6 +346,7 @@ ui.playerCount.textContent = `(${actualPlayers.length}/${appState.campaignMaxPla
     const setupMap = () => {
         const canvas = ui.fogOfWarCanvas;
         const mapImage = ui.masterMap;
+        if(!canvas || !mapImage) return;
         appState.map.ctx = canvas.getContext('2d');
         const resizeCanvas = () => {
             canvas.width = mapImage.clientWidth;
@@ -329,11 +357,12 @@ ui.playerCount.textContent = `(${actualPlayers.length}/${appState.campaignMaxPla
         window.addEventListener('resize', resizeCanvas);
         if (mapImage.complete) resizeCanvas();
 
+        let isDrawing = false;
         let startX, startY;
-        canvas.addEventListener('mousedown', (e) => { appState.map.isDrawing = true; startX = e.offsetX; startY = e.offsetY; });
+        canvas.addEventListener('mousedown', (e) => { isDrawing = true; startX = e.offsetX; startY = e.offsetY; });
         canvas.addEventListener('mouseup', (e) => {
-            if (!appState.map.isDrawing) return;
-            appState.map.isDrawing = false;
+            if (!isDrawing) return;
+            isDrawing = false;
             const newArea = {
                 x: startX / canvas.width, y: startY / canvas.height,
                 w: (e.offsetX - startX) / canvas.width, h: (e.offsetY - startY) / canvas.height,
@@ -344,7 +373,9 @@ ui.playerCount.textContent = `(${actualPlayers.length}/${appState.campaignMaxPla
 
     const drawRevealedAreas = () => {
         const { ctx, revealedAreas } = appState.map;
+        if(!ctx) return;
         const canvas = ui.fogOfWarCanvas;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         if (revealedAreas && revealedAreas.length > 0) {
@@ -383,7 +414,7 @@ ui.playerCount.textContent = `(${actualPlayers.length}/${appState.campaignMaxPla
             }
         });
         
-        playersRef.orderBy('createdAt').onSnapshot(snap => {
+        playersRef.orderBy('name').onSnapshot(snap => {
             appState.players = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderPlayers();
         });
@@ -424,8 +455,8 @@ ui.playerCount.textContent = `(${actualPlayers.length}/${appState.campaignMaxPla
         ui.tabs.forEach(btn => btn.addEventListener('click', (e) => {
             ui.tabs.forEach(t => t.classList.remove('active'));
             ui.tabContents.forEach(c => c.classList.remove('active'));
-            e.target.classList.add('active');
-            document.getElementById(`${e.target.dataset.tab}Tab`).classList.add('active');
+            e.currentTarget.classList.add('active');
+            document.getElementById(`${e.currentTarget.dataset.tab}Tab`).classList.add('active');
         }));
         
         document.querySelectorAll('.close-modal').forEach(btn => btn.addEventListener('click', (e) => closeModal(e.target.closest('.master-modal').id)));
@@ -443,6 +474,40 @@ ui.playerCount.textContent = `(${actualPlayers.length}/${appState.campaignMaxPla
             if (name) playersRef.add({ name, type: 'npc', health: 10, maxHealth: 10, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
         });
         
+        // --- DELEGAÇÃO DE EVENTOS PARA EXCLUSÃO E EDIÇÃO ---
+        ui.masterItemList.addEventListener('click', e => {
+            const target = e.target;
+            const card = target.closest('.item-card');
+            if (target.classList.contains('delete-btn')) {
+                handleDelete('items', target.dataset.id, 'Item');
+            } else if (card) {
+                const entityId = card.querySelector('[data-entity-id]').dataset.entityId;
+                const itemData = appState.items.find(i => i.id === entityId);
+                if (itemData) openModal('itemModal', itemData);
+            }
+        });
+
+        ui.enemyList.addEventListener('click', e => {
+            const target = e.target;
+            const card = target.closest('.enemy-card');
+            if (target.classList.contains('delete-btn')) {
+                handleDelete('enemies', target.dataset.id, 'Inimigo');
+            } else if (card) {
+                const entityId = card.querySelector('[data-entity-id]').dataset.entityId;
+                const enemyData = appState.enemies.find(en => en.id === entityId);
+                if (enemyData) openModal('enemyModal', enemyData);
+            }
+        });
+        
+        ui.mapList.addEventListener('click', e => {
+            const target = e.target;
+            if (target.classList.contains('delete-btn')) {
+                handleDelete('maps', target.dataset.id, 'Mapa');
+            } else if (target.classList.contains('map-name')) {
+                campaignRef.update({ activeMapId: target.dataset.id });
+            }
+        });
+
         ui.addMapBtn.addEventListener('click', () => {
             const name = ui.mapNameInput.value.trim();
             const url = ui.mapUrlInput.value.trim();
@@ -474,7 +539,13 @@ ui.playerCount.textContent = `(${actualPlayers.length}/${appState.campaignMaxPla
         };
         ui.sendMasterMsgBtn.addEventListener('click', sendChatMessage);
         ui.masterChatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChatMessage(); });
-        ui.toggleChatBtn.addEventListener('click', () => ui.masterChat.classList.toggle('collapsed'));
+        
+        // Listener para o botão do chat reativado
+        if (ui.toggleChatBtn) {
+            ui.toggleChatBtn.addEventListener('click', () => {
+                ui.masterChat.classList.toggle('collapsed');
+            });
+        }
     };
 
     // --- INICIALIZAÇÃO DA APLICAÇÃO ---
