@@ -256,21 +256,26 @@ ui.playerCount.textContent = `(${actualPlayers.length}/${appState.campaignMaxPla
     };
 
     const handleSendItemToPlayer = () => {
-        const playerId = document.getElementById('playerActionTargetId').value;
-        const itemId = document.getElementById('playerActionItemSelect').value;
-        if (!itemId) return showNotification("Selecione um item.", "error");
+    const playerId = document.getElementById('playerActionTargetId').value;
+    const itemId = document.getElementById('playerActionItemSelect').value;
+    if (!itemId) return showNotification("Selecione um item.", "error");
 
-        const item = appState.items.find(i => i.id === itemId);
-        const player = appState.players.find(p => p.id === playerId);
-        
-        eventsRef.add({
-            type: 'item_received',
-            recipientId: player.id,
-            item: { id: item.id, name: item.name },
-            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-            text: `${appState.masterInfo.name} enviou ${item.name} para ${player.name}.`
-        }).then(() => showNotification(`Item enviado para ${player.name}.`, 'success'));
-    };
+    // Encontra o objeto completo do item no estado da aplicação
+    const item = appState.items.find(i => i.id === itemId);
+    const player = appState.players.find(p => p.id === playerId);
+    
+    // O evento agora envia o objeto 'item' COMPLETO, com todos os seus dados.
+    eventsRef.add({
+        type: 'item_received',
+        recipientId: player.id,
+        item: item, // <<< ESSA É A LINHA CORRIGIDA E ESSENCIAL
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        text: `${appState.masterInfo.name || 'Mestre'} enviou ${item.name} para ${player.name}.`
+    }).then(() => {
+        showNotification(`Item enviado para ${player.name}.`, 'success');
+        closeModal('playerActionModal');
+    });
+};
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
