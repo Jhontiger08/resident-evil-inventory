@@ -25,7 +25,8 @@
         .map-container {
             position: relative;
             background-color: #000;
-            display: flex; /* Ajuda a centralizar a imagem se ela for menor que o container */
+            display: flex;
+            /* Ajuda a centralizar a imagem se ela for menor que o container */
             justify-content: center;
             align-items: center;
             overflow: hidden;
@@ -40,7 +41,8 @@
             position: absolute;
             top: 0;
             left: 0;
-            pointer-events: none; /* Permite interagir com o mapa por baixo, se necessário */
+            pointer-events: none;
+            /* Permite interagir com o mapa por baixo, se necessário */
         }
     </style>
 
@@ -380,12 +382,12 @@
                         const imgRect = mapImage.getBoundingClientRect();
                         canvas.width = imgRect.width;
                         canvas.height = imgRect.height;
-                        
+
                         // CORREÇÃO JS: Garante que a névoa seja redesenhada sempre que a imagem do mapa carregar/redimensionar
                         drawPlayerFogOfWar();
                     }
                 };
-                
+
                 // Gatilhos para redimensionar o canvas
                 mapImage.onload = resizeCanvas;
                 window.addEventListener('resize', resizeCanvas);
@@ -395,9 +397,9 @@
                 if (!mapState.ctx) return;
                 const { ctx, revealedAreas } = mapState;
                 const canvas = elements.playerFogOfWarCanvas;
-                
+
                 // Garante que o canvas tenha um tamanho antes de desenhar
-                if(canvas.width === 0 || canvas.height === 0) return;
+                if (canvas.width === 0 || canvas.height === 0) return;
 
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
@@ -479,7 +481,15 @@
             }
             function discardItem(index) {
                 const item = localInventory[index];
-                if (item && confirm(`Tem certeza que deseja descartar ${item.name}?`)) { localInventory[index] = null; elements.itemDescription.innerHTML = 'Clique em um item para ver a descrição.'; elements.selectedItemDisplay.textContent = 'Nenhum'; saveData(); }
+                if (item && confirm(`Tem certeza que deseja descartar ${item.name}?`)) {
+                    localInventory[index] = null;
+
+                    renderInventory(); // <-- ADICIONE ESTA LINHA
+
+                    elements.itemDescription.innerHTML = 'Clique em um item para ver a descrição.';
+                    elements.selectedItemDisplay.textContent = 'Nenhum';
+                    saveData();
+                }
             }
             function useHealingItem(index) {
                 const item = localInventory[index];
