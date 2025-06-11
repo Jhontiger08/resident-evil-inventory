@@ -76,7 +76,10 @@
                         <h3><i class="fas fa-map"></i> Gerenciar Mapas</h3>
                         <div class="controls-bar">
                             <input type="text" id="mapNameInput" placeholder="Nome do Mapa (Ex: Mansão 1F)">
-                            <input type="url" id="mapUrlInput" placeholder="URL da Imagem do Mapa">
+                            <div style="display: flex; align-items: center; width: 100%; gap: 5px;">
+                                <input type="url" id="mapUrlInput" placeholder="URL da Imagem do Mapa" style="flex-grow: 1;">
+                                <button type="button" class="help-btn" data-modal="imageHelpModal" title="Como obter URL de imagem?">?</button>
+                            </div>
                             <button id="addMapBtn" class="re-btn">Adicionar</button>
                         </div>
                         <div id="mapList" class="map-list"></div>
@@ -132,14 +135,14 @@
     <div id="playerActionModal" class="master-modal">
     <div class="modal-content">
         <span class="close-modal" title="Fechar">&times;</span>
-        <h2 id="playerActionTitle">Ações</h2>
+        <h2 id="playerActionTitle">Ações para:</h2>
         <input type="hidden" id="playerActionTargetId">
         <div class="form-section">
             <h3><i class="fas fa-heartbeat"></i> Vida</h3>
             <div class="health-control">
-                <input type="number" id="playerActionHealth" class="health-input">
+                <input type="number" id="playerActionHealth">
                 <span>/</span>
-                <input type="number" id="playerActionMaxHealth" class="health-input">
+                <input type="number" id="playerActionMaxHealth">
                 <button id="playerActionUpdateHealthBtn" class="re-btn">Atualizar</button>
             </div>
         </div>
@@ -160,10 +163,16 @@
         <div class="modal-content"><span class="close-modal">&times;</span>
             <h2 id="itemModalTitle"></h2>
             <form id="itemForm"><input type="hidden" id="itemId">
-                <div class="form-group"><label for="itemName">Nome:</label><input type="text" id="itemName" required>
+                <div class="form-group">
+                    <label for="itemName">Nome:</label>
+                    <input type="text" id="itemName" required>
                 </div>
-                <div class="form-group"><label for="itemImage">URL da Imagem:</label><input type="url" id="itemImage"
-                        placeholder="https://imgur.com/link_da_imagem.png"></div>
+                <div class="form-group">
+                    <label for="itemImage">URL da Imagem: 
+                        <button type="button" class="help-btn" data-modal="imageHelpModal" title="Como obter URL de imagem?">?</button>
+                    </label>
+                    <input type="url" id="itemImage" placeholder="https://imgur.com/link_da_imagem.png">
+                </div>
                 <div class="form-group"><label for="itemType">Tipo:</label><select id="itemType" required>
                         <option value="misc">Diversos</option>
                         <option value="weapon">Arma</option>
@@ -177,18 +186,20 @@
             </form>
         </div>
     </div>
-    <div class="form-section">
-        <h3><i class="fas fa-user-slash"></i> Gerenciar Jogador</h3>
-        <button id="playerActionKickBtn" class="re-btn re-btn-danger">Expulsar Jogador</button>
-    </div>
     <div id="enemyModal" class="master-modal">
         <div class="modal-content"><span class="close-modal">&times;</span>
             <h2 id="enemyModalTitle"></h2>
             <form id="enemyForm"><input type="hidden" id="enemyId">
-                <div class="form-group"><label for="enemyName">Nome:</label><input type="text" id="enemyName" required>
+                <div class="form-group">
+                    <label for="enemyName">Nome:</label>
+                    <input type="text" id="enemyName" required>
                 </div>
-                <div class="form-group"><label for="enemyImage">URL da Imagem:</label><input type="url" id="enemyImage"
-                        placeholder="https://imgur.com/link_da_imagem.png"></div>
+                <div class="form-group">
+                    <label for="enemyImage">URL da Imagem: 
+                         <button type="button" class="help-btn" data-modal="imageHelpModal" title="Como obter URL de imagem?">?</button>
+                    </label>
+                    <input type="url" id="enemyImage" placeholder="https://imgur.com/link_da_imagem.png">
+                </div>
                 <div class="form-group"><label for="enemyHealth">Vida:</label><input type="number" id="enemyHealth"
                         min="1" required></div>
                 <div class="form-group"><label for="enemyDamage">Dano:</label><input type="text" id="enemyDamage"></div>
@@ -198,7 +209,68 @@
         </div>
     </div>
 
-    <script src="master.js" defer></script>
+    <!-- NOVO MODAL DE AJUDA PARA IMAGENS -->
+    <div id="imageHelpModal" class="master-modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Como Obter um Link Direto de Imagem</h2>
+            <div class="help-content">
+                <p>Para que as imagens funcionem corretamente, você precisa usar um <strong>link direto</strong>, que termina com <code>.png</code>, <code>.jpg</code>, <code>.gif</code>, ou <code>.webp</code>.</p>
+                
+                <h3>Usando o Imgur</h3>
+                <ol>
+                    <li>Acesse <a href="https://imgur.com/upload" target="_blank">imgur.com/upload</a> e envie sua imagem.</li>
+                    <li>Após o upload, <strong>não copie o link da barra de endereço do navegador</strong>.</li>
+                    <li>Clique com o <strong>botão direito</strong> na sua imagem.</li>
+                    <li>No menu, selecione a opção <strong>"Copiar endereço da imagem"</strong>.</li>
+                </ol>
+                <p>Exemplo de link incorreto: <code>https://imgur.com/a/abcdef</code></p>
+                <p>Exemplo de link <strong>correto</strong>: <code>https://i.imgur.com/exemplo.png</code></p>
+
+                <h3>Usando o Discord</h3>
+                <ol>
+                    <li>Arraste e solte (ou envie) sua imagem em qualquer canal de texto no Discord.</li>
+                    <li>Depois que a imagem carregar, clique nela para abri-la em tela cheia.</li>
+                    <li>Com a imagem ampliada, clique com o <strong>botão direito</strong> nela.</li>
+                    <li>No menu, selecione a opção <strong>"Copiar link da imagem"</strong>.</li>
+                </ol>
+                 <p>Exemplo de link <strong>correto</strong>: <code>https://cdn.discordapp.com/attachments/.../imagem.png</code></p>
+                 <hr style="border-color: rgba(192,160,80,0.2); margin: 1rem 0;">
+                 <p><strong>Dica final:</strong> Para testar, cole o link em uma nova aba do navegador. Se a imagem aparecer sozinha, sem nenhum site ao redor, o link está correto!</p>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="master.js"></script>
+    <script>
+        // Adiciona a lógica para abrir o modal de ajuda
+        document.addEventListener('DOMContentLoaded', function () {
+            document.body.addEventListener('click', (e) => {
+                // Abre o modal de ajuda de imagem
+                if (e.target.classList.contains('help-btn')) {
+                    e.preventDefault(); // Previne qualquer ação padrão do botão
+                    const modalId = e.target.dataset.modal;
+                    if (modalId) {
+                        const modal = document.getElementById(modalId);
+                        if(modal) modal.style.display = 'block';
+                    }
+                }
+
+                // Lógica para fechar modais (reforçando a existente em master.js)
+                if (e.target.classList.contains('close-modal')) {
+                    e.target.closest('.master-modal').style.display = 'none';
+                }
+            });
+
+             // Lógica para fechar modal clicando fora
+            window.addEventListener('click', (e) => {
+                if (e.target.classList.contains('master-modal')) {
+                    e.target.style.display = 'none';
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>
