@@ -64,16 +64,14 @@ document.addEventListener('DOMContentLoaded', function () {
         masterChatMessages: document.getElementById('masterChatMessages'),
         masterChatInput: document.getElementById('masterChatInput'),
         sendMasterMsgBtn: document.getElementById('sendMasterMsgBtn'),
-        toggleChatBtn: document.getElementById('toggleChatBtn'), // Referência reativada
+        toggleChatBtn: document.getElementById('toggleChatBtn'), 
         confirmModal: document.getElementById('confirmModal'),
         playerActionModal: document.getElementById('playerActionModal'),
         mapNameInput: document.getElementById('mapNameInput'),
         mapUrlInput: document.getElementById('mapUrlInput'),
         addMapBtn: document.getElementById('addMapBtn'),
         mapList: document.getElementById('mapList'),
-        playerActionModal: document.getElementById('playerActionModal'),
-        playerActionKickBtn: document.getElementById('playerActionKickBtn'), // Adicione esta linha
-        mapNameInput: document.getElementById('mapNameInput'),
+        playerActionKickBtn: document.getElementById('playerActionKickBtn'),
     };
 
     // --- ESTADO DA APLICAÇÃO ---
@@ -491,13 +489,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         document.getElementById('playerActionUpdateHealthBtn').addEventListener('click', handleUpdatePlayerHealth);
         document.getElementById('playerActionSendItemBtn').addEventListener('click', handleSendItemToPlayer);
+        ui.playerActionKickBtn.addEventListener('click', handleKickPlayer);
 
         ui.addNpcBtn.addEventListener('click', () => {
             const name = prompt('Nome do NPC:');
             if (name) playersRef.add({ name, type: 'npc', health: 10, maxHealth: 10, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
         });
 
-        // --- DELEGAÇÃO DE EVENTOS PARA EXCLUSÃO E EDIÇÃO ---
         ui.masterItemList.addEventListener('click', e => {
             const target = e.target;
             const card = target.closest('.item-card');
@@ -545,7 +543,14 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         ui.clearMapBtn.addEventListener('click', async () => { if (await showConfirmation('Limpar Mapa', 'Isso removerá todas as áreas reveladas. Certeza?')) { mapStateRef.set({ revealed: [] }); } });
 
+        // --- LÓGICA DO SOM DOS DADOS ---
         ui.diceBtns.forEach(btn => btn.addEventListener('click', (e) => {
+            const diceAudio = document.getElementById('master-dice-audio');
+            if (diceAudio) {
+                diceAudio.currentTime = 0;
+                diceAudio.play().catch(err => console.error("Erro ao tocar áudio:", err));
+            }
+            
             const sides = parseInt(e.target.dataset.sides);
             const result = Math.floor(Math.random() * sides) + 1;
             const rollText = `(Mestre) rolou d${sides}: ${result}`;
@@ -563,7 +568,6 @@ document.addEventListener('DOMContentLoaded', function () {
         ui.sendMasterMsgBtn.addEventListener('click', sendChatMessage);
         ui.masterChatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
 
-        // Listener para o botão do chat reativado
         if (ui.toggleChatBtn) {
             ui.toggleChatBtn.addEventListener('click', () => {
                 ui.masterChat.classList.toggle('collapsed');
@@ -573,8 +577,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- INICIALIZAÇÃO DA APLICAÇÃO ---
     setupRealtimeListeners();
-    document.getElementById('playerActionSendItemBtn').addEventListener('click', handleSendItemToPlayer);
-    ui.playerActionKickBtn.addEventListener('click', handleKickPlayer); // Adicione esta linha
     setupUIEvents();
     setupMap();
 });
