@@ -13,6 +13,31 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+
+    <!-- Estilos já adicionados anteriormente -->
+    <style>
+        #playerActionModal .form-section { padding-bottom: 1.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(192, 160, 80, 0.2); }
+        #playerActionModal .form-section:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        #playerActionModal h3 { margin-bottom: 1rem; color: #c0a050; font-weight: normal; font-size: 1.1rem; display: flex; align-items: center; }
+        #playerActionModal h3 i { margin-right: 0.75rem; font-size: 1rem; }
+        .health-control, .item-send { display: flex; align-items: center; gap: 0.75rem; }
+        #playerActionModal input[type="number"], #playerActionModal select { background-color: #1a1a1a; border: 1px solid #444; color: #e0e0e0; padding: 0.6rem; border-radius: 4px; font-family: 'IM Fell English SC', serif; font-size: 1rem; transition: border-color 0.3s, box-shadow 0.3s; }
+        #playerActionModal input[type="number"]:focus, #playerActionModal select:focus { outline: none; border-color: #c0a050; box-shadow: 0 0 5px rgba(192, 160, 80, 0.3); }
+        #playerActionModal .health-control input[type="number"] { width: 80px; text-align: center; }
+        #playerActionModal .health-control span { color: #888; }
+        #playerActionModal .item-send select { flex-grow: 1; }
+        .health-control .re-btn, .item-send .re-btn { padding: 0.6rem 1rem; }
+        .help-btn { display: inline-block; width: 20px; height: 20px; line-height: 20px; text-align: center; border-radius: 50%; background-color: #555; color: #fff; border: 1px solid #777; font-size: 12px; font-weight: bold; cursor: pointer; margin-left: 8px; vertical-align: middle; transition: background-color 0.3s; }
+        .help-btn:hover { background-color: #c0a050; color: #000; }
+        .form-group label { display: flex; align-items: center; }
+        #imageHelpModal .modal-content { max-width: 600px; }
+        .help-content h3 { color: #c0a050; border-bottom: 1px solid rgba(192, 160, 80, 0.3); padding-bottom: 0.5rem; margin-top: 1.5rem; margin-bottom: 1rem; }
+        .help-content p { line-height: 1.6; color: #ccc; margin-bottom: 0.5rem; }
+        .help-content ol { color: #ccc; padding-left: 20px; }
+        .help-content li { margin-bottom: 0.5rem; }
+        .help-content code { background-color: #1a1a1a; padding: 2px 6px; border-radius: 3px; color: #e0e0e0; font-family: monospace; word-break: break-all; }
+    </style>
+
 </head>
 
 <body>
@@ -33,6 +58,7 @@
         </header>
 
         <main class="master-body">
+            <!-- Conteúdo principal -->
             <aside class="players-panel">
                 <h2><i class="fas fa-users"></i> Jogadores <span id="playerCount">(0/6)</span></h2>
                 <div class="player-list" id="playerList">
@@ -124,6 +150,7 @@
         </div>
     </aside>
 
+    <!-- Modais -->
     <div id="confirmModal" class="master-modal">
         <div class="modal-content">
             <h2 id="confirmModalTitle">Confirmar</h2>
@@ -133,32 +160,32 @@
         </div>
     </div>
     <div id="playerActionModal" class="master-modal">
-    <div class="modal-content">
-        <span class="close-modal" title="Fechar">&times;</span>
-        <h2 id="playerActionTitle">Ações para:</h2>
-        <input type="hidden" id="playerActionTargetId">
-        <div class="form-section">
-            <h3><i class="fas fa-heartbeat"></i> Vida</h3>
-            <div class="health-control">
-                <input type="number" id="playerActionHealth">
-                <span>/</span>
-                <input type="number" id="playerActionMaxHealth">
-                <button id="playerActionUpdateHealthBtn" class="re-btn">Atualizar</button>
+        <div class="modal-content">
+            <span class="close-modal" title="Fechar">&times;</span>
+            <h2 id="playerActionTitle">Ações para:</h2>
+            <input type="hidden" id="playerActionTargetId">
+            <div class="form-section">
+                <h3><i class="fas fa-heartbeat"></i> Vida</h3>
+                <div class="health-control">
+                    <input type="number" id="playerActionHealth">
+                    <span>/</span>
+                    <input type="number" id="playerActionMaxHealth">
+                    <button id="playerActionUpdateHealthBtn" class="re-btn">Atualizar</button>
+                </div>
             </div>
-        </div>
-        <div class="form-section">
-            <h3><i class="fas fa-gift"></i> Enviar Item</h3>
-            <div class="item-send">
-                <select id="playerActionItemSelect"></select>
-                <button id="playerActionSendItemBtn" class="re-btn">Enviar</button>
+            <div class="form-section">
+                <h3><i class="fas fa-gift"></i> Enviar Item</h3>
+                <div class="item-send">
+                    <select id="playerActionItemSelect"></select>
+                    <button id="playerActionSendItemBtn" class="re-btn">Enviar</button>
+                </div>
             </div>
-        </div>
-        <div class="form-section">
-            <h3><i class="fas fa-user-slash"></i> Gerenciar Jogador</h3>
-            <button id="playerActionKickBtn" class="re-btn re-btn-danger">Expulsar Jogador</button>
+            <div class="form-section">
+                <h3><i class="fas fa-user-slash"></i> Gerenciar Jogador</h3>
+                <button id="playerActionKickBtn" class="re-btn re-btn-danger">Expulsar Jogador</button>
+            </div>
         </div>
     </div>
-</div>
     <div id="itemModal" class="master-modal">
         <div class="modal-content"><span class="close-modal">&times;</span>
             <h2 id="itemModalTitle"></h2>
@@ -208,15 +235,12 @@
             </form>
         </div>
     </div>
-
-    <!-- NOVO MODAL DE AJUDA PARA IMAGENS -->
     <div id="imageHelpModal" class="master-modal">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
             <h2>Como Obter um Link Direto de Imagem</h2>
             <div class="help-content">
                 <p>Para que as imagens funcionem corretamente, você precisa usar um <strong>link direto</strong>, que termina com <code>.png</code>, <code>.jpg</code>, <code>.gif</code>, ou <code>.webp</code>.</p>
-                
                 <h3>Usando o Imgur</h3>
                 <ol>
                     <li>Acesse <a href="https://imgur.com/upload" target="_blank">imgur.com/upload</a> e envie sua imagem.</li>
@@ -226,7 +250,6 @@
                 </ol>
                 <p>Exemplo de link incorreto: <code>https://imgur.com/a/abcdef</code></p>
                 <p>Exemplo de link <strong>correto</strong>: <code>https://i.imgur.com/exemplo.png</code></p>
-
                 <h3>Usando o Discord</h3>
                 <ol>
                     <li>Arraste e solte (ou envie) sua imagem em qualquer canal de texto no Discord.</li>
@@ -241,29 +264,25 @@
         </div>
     </div>
 
+    <!-- Áudio dos dados para o mestre -->
+    <audio id="master-dice-audio" src="sounds/dice1.mp3"></audio>
 
-    <script src="master.js"></script>
+    <script src="master.js" defer></script>
     <script>
-        // Adiciona a lógica para abrir o modal de ajuda
         document.addEventListener('DOMContentLoaded', function () {
             document.body.addEventListener('click', (e) => {
-                // Abre o modal de ajuda de imagem
                 if (e.target.classList.contains('help-btn')) {
-                    e.preventDefault(); // Previne qualquer ação padrão do botão
+                    e.preventDefault();
                     const modalId = e.target.dataset.modal;
                     if (modalId) {
                         const modal = document.getElementById(modalId);
                         if(modal) modal.style.display = 'block';
                     }
                 }
-
-                // Lógica para fechar modais (reforçando a existente em master.js)
                 if (e.target.classList.contains('close-modal')) {
                     e.target.closest('.master-modal').style.display = 'none';
                 }
             });
-
-             // Lógica para fechar modal clicando fora
             window.addEventListener('click', (e) => {
                 if (e.target.classList.contains('master-modal')) {
                     e.target.style.display = 'none';
