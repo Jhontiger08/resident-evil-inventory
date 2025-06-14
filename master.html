@@ -15,31 +15,283 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
 
     <style>
-        #playerActionModal .form-section { padding-bottom: 1.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(192, 160, 80, 0.2); }
-        #playerActionModal .form-section:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-        #playerActionModal h3 { margin-bottom: 1rem; color: #c0a050; font-weight: normal; font-size: 1.1rem; display: flex; align-items: center; }
-        #playerActionModal h3 i { margin-right: 0.75rem; font-size: 1rem; }
-        .health-control, .item-send { display: flex; align-items: center; gap: 0.75rem; }
-        #playerActionModal input[type="number"], #playerActionModal select { background-color: #1a1a1a; border: 1px solid #444; color: #e0e0e0; padding: 0.6rem; border-radius: 4px; font-family: 'IM Fell English SC', serif; font-size: 1rem; transition: border-color 0.3s, box-shadow 0.3s; }
-        #playerActionModal input[type="number"]:focus, #playerActionModal select:focus { outline: none; border-color: #c0a050; box-shadow: 0 0 5px rgba(192, 160, 80, 0.3); }
-        #playerActionModal .health-control input[type="number"] { width: 80px; text-align: center; }
-        #playerActionModal .health-control span { color: #888; }
-        #playerActionModal .item-send select { flex-grow: 1; }
-        .health-control .re-btn, .item-send .re-btn { padding: 0.6rem 1rem; }
-        .help-btn { display: inline-block; width: 20px; height: 20px; line-height: 20px; text-align: center; border-radius: 50%; background-color: #555; color: #fff; border: 1px solid #777; font-size: 12px; font-weight: bold; cursor: pointer; margin-left: 8px; vertical-align: middle; transition: background-color 0.3s; }
-        .help-btn:hover { background-color: #c0a050; color: #000; }
-        .form-group label { display: flex; align-items: center; }
-        #imageHelpModal .modal-content { max-width: 600px; }
-        .help-content h3 { color: #c0a050; border-bottom: 1px solid rgba(192, 160, 80, 0.3); padding-bottom: 0.5rem; margin-top: 1.5rem; margin-bottom: 1rem; }
-        .help-content p { line-height: 1.6; color: #ccc; margin-bottom: 0.5rem; }
-        .help-content ol { color: #ccc; padding-left: 20px; }
-        .help-content li { margin-bottom: 0.5rem; }
-        .help-content code { background-color: #1a1a1a; padding: 2px 6px; border-radius: 3px; color: #e0e0e0; font-family: monospace; word-break: break-all; }
-        .dice-roller .dice-quantity { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 1.5rem; }
-        .dice-roller .dice-quantity label { font-size: 1.1rem; color: #c0a050; }
-        .dice-roller #diceQuantityInput { width: 70px; padding: 0.5rem; text-align: center; background-color: #1a1a1a; border: 1px solid #444; color: #e0e0e0; border-radius: 4px; font-family: 'IM Fell English SC', serif; font-size: 1.2rem; }
+        /* Estilos para o novo interruptor de Névoa de Guerra */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
 
-        /* NOVO: CSS Corrigido para a seta do chat */
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #555;
+            transition: .4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+        }
+
+        input:checked+.slider {
+            background-color: var(--primary-color);
+        }
+
+        input:focus+.slider {
+            box-shadow: 0 0 1px var(--primary-color);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(22px);
+        }
+
+        .slider.round {
+            border-radius: 34px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
+
+        .map-tools {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Estilos para a nova lista de Iniciativa */
+        /* --- ESTILOS DA ABA DE INICIATIVA --- */
+        .initiative-list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .initiative-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: rgba(42, 42, 42, 0.7);
+            border: 1px solid var(--border-color);
+            padding: 0.8rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            border-left: 5px solid transparent;
+        }
+
+        .initiative-item.active {
+            border-left: 5px solid var(--primary-color);
+            background-color: rgba(192, 160, 80, 0.2);
+            transform: scale(1.02);
+        }
+
+        .initiative-item .name {
+            flex-grow: 1;
+            font-size: 1.1rem;
+        }
+
+        .initiative-item .score {
+            font-weight: bold;
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            margin: 0 1rem;
+        }
+
+        .initiative-item .remove-from-initiative-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0 5px;
+            transition: all 0.2s ease;
+        }
+
+        .initiative-item .remove-from-initiative-btn:hover {
+            color: var(--danger-color);
+            transform: scale(1.2);
+        }
+
+        /* Estilos genéricos (mantidos do arquivo original) */
+        #playerActionModal .form-section {
+            padding-bottom: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(192, 160, 80, 0.2);
+        }
+
+        #playerActionModal .form-section:last-of-type {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        #playerActionModal h3 {
+            margin-bottom: 1rem;
+            color: #c0a050;
+            font-weight: normal;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        #playerActionModal h3 i {
+            margin-right: 0.75rem;
+            font-size: 1rem;
+        }
+
+        .health-control,
+        .item-send {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        #playerActionModal input[type="number"],
+        #playerActionModal select {
+            background-color: #1a1a1a;
+            border: 1px solid #444;
+            color: #e0e0e0;
+            padding: 0.6rem;
+            border-radius: 4px;
+            font-family: 'IM Fell English SC', serif;
+            font-size: 1rem;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        #playerActionModal input[type="number"]:focus,
+        #playerActionModal select:focus {
+            outline: none;
+            border-color: #c0a050;
+            box-shadow: 0 0 5px rgba(192, 160, 80, 0.3);
+        }
+
+        #playerActionModal .health-control input[type="number"] {
+            width: 80px;
+            text-align: center;
+        }
+
+        #playerActionModal .health-control span {
+            color: #888;
+        }
+
+        #playerActionModal .item-send select {
+            flex-grow: 1;
+        }
+
+        .health-control .re-btn,
+        .item-send .re-btn {
+            padding: 0.6rem 1rem;
+        }
+
+        .help-btn {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+            text-align: center;
+            border-radius: 50%;
+            background-color: #555;
+            color: #fff;
+            border: 1px solid #777;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-left: 8px;
+            vertical-align: middle;
+            transition: background-color 0.3s;
+        }
+
+        .help-btn:hover {
+            background-color: #c0a050;
+            color: #000;
+        }
+
+        .form-group label {
+            display: flex;
+            align-items: center;
+        }
+
+        #imageHelpModal .modal-content {
+            max-width: 600px;
+        }
+
+        .help-content h3 {
+            color: #c0a050;
+            border-bottom: 1px solid rgba(192, 160, 80, 0.3);
+            padding-bottom: 0.5rem;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .help-content p {
+            line-height: 1.6;
+            color: #ccc;
+            margin-bottom: 0.5rem;
+        }
+
+        .help-content ol {
+            color: #ccc;
+            padding-left: 20px;
+        }
+
+        .help-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        .help-content code {
+            background-color: #1a1a1a;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #e0e0e0;
+            font-family: monospace;
+            word-break: break-all;
+        }
+
+        .dice-roller .dice-quantity {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 1.5rem;
+        }
+
+        .dice-roller .dice-quantity label {
+            font-size: 1.1rem;
+            color: #c0a050;
+        }
+
+        .dice-roller #diceQuantityInput {
+            width: 70px;
+            padding: 0.5rem;
+            text-align: center;
+            background-color: #1a1a1a;
+            border: 1px solid #444;
+            color: #e0e0e0;
+            border-radius: 4px;
+            font-family: 'IM Fell English SC', serif;
+            font-size: 1.2rem;
+        }
+
         .master-chat .chat-header #toggleChatBtn {
             background-color: rgba(66, 66, 66, 0.5);
             border: 1px solid rgba(192, 160, 80, 0.3);
@@ -53,11 +305,75 @@
             align-items: center;
             justify-content: center;
         }
+
         .master-chat .chat-header #toggleChatBtn:hover {
             background-color: #c0a050;
             color: #000;
         }
 
+        /* --- ESTILOS DO MINI-INVENTÁRIO DO NPC --- */
+.npc-inventory {
+    margin-top: 0.8rem;
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.npc-inventory-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 0.8rem;
+}
+
+.npc-inventory-item {
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.npc-inventory-item i {
+    color: var(--primary-color);
+    margin-right: 0.5rem;
+    width: 12px; /* Alinha os ícones */
+}
+
+/* --- ESTILOS DO INVENTÁRIO NO MODAL --- */
+.modal-inventory-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 0.5rem;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+
+.modal-inventory-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem;
+    background-color: rgba(45, 45, 45, 0.8);
+    border-radius: 4px;
+}
+
+.modal-inventory-item .item-name {
+    flex-grow: 1;
+}
+
+.modal-inventory-item .item-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.modal-inventory-item .item-actions .re-btn {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+}
     </style>
 
 </head>
@@ -68,13 +384,11 @@
         <header class="master-header">
             <div class="campaign-info">
                 <h1 id="campaignTitle">Carregando...</h1>
-                <p id="campaignCode">Código: <span>...</span> <button id="copyCode" title="Copiar Código"><i
-                            class="fas fa-copy"></i></button></p>
+                <p id="campaignCode">Código: <span>...</span> <button id="copyCode" title="Copiar Código"><i class="fas fa-copy"></i></button></p>
             </div>
             <div class="master-controls">
                 <button id="saveNotesBtn" class="re-btn"><i class="fas fa-save"></i> Salvar Anotações</button>
-                <button id="endSessionBtn" class="re-btn re-btn-danger"><i class="fas fa-power-off"></i> Encerrar
-                    Sessão</button>
+                <button id="endSessionBtn" class="re-btn re-btn-danger"><i class="fas fa-power-off"></i> Encerrar Sessão</button>
                 <button id="masterLogoutBtn" class="re-btn re-btn-secondary">Sair</button>
             </div>
         </header>
@@ -85,7 +399,12 @@
                 <div class="player-list" id="playerList">
                     <div class="empty-placeholder">Nenhum jogador conectado</div>
                 </div>
-                <div class="player-actions">
+
+                <h2 style="margin-top: 1.5rem;"><i class="fas fa-robot"></i> NPCs</h2>
+                <div class="player-list" id="npcList">
+                    <div class="empty-placeholder">Nenhum NPC criado</div>
+                </div>
+                <div class="player-actions" style="margin-top: 1rem;">
                     <button id="addNpcBtn" class="re-btn"><i class="fas fa-user-plus"></i> Adicionar NPC</button>
                 </div>
             </aside>
@@ -97,22 +416,26 @@
                     <button class="tab-btn" data-tab="enemies"><i class="fas fa-skull-crossbones"></i> Inimigos</button>
                     <button class="tab-btn" data-tab="map"><i class="fas fa-map-marked-alt"></i> Mapa</button>
                     <button class="tab-btn" data-tab="dice"><i class="fas fa-dice-d20"></i> Dados</button>
+                    <button class="tab-btn" data-tab="initiative"><i class="fas fa-list-ol"></i> Iniciativa</button>
                 </div>
 
-                <div class="tab-content active" id="notesTab"><textarea id="masterNotes"
-                        placeholder="Anotações privadas do mestre..."></textarea></div>
+                <div class="tab-content active" id="notesTab">
+                    <textarea id="masterNotes" placeholder="Anotações privadas do mestre..."></textarea>
+                </div>
 
                 <div class="tab-content" id="itemsTab">
-                    <div class="controls-bar"><button id="addItemBtn" class="re-btn"><i class="fas fa-plus-circle"></i>
-                            Criar Novo Item</button></div>
+                    <div class="controls-bar">
+                        <button id="addItemBtn" class="re-btn"><i class="fas fa-plus-circle"></i> Criar Novo Item</button>
+                    </div>
                     <div class="card-list" id="masterItemList">
                         <div class="empty-placeholder">Nenhum item criado.</div>
                     </div>
                 </div>
 
                 <div class="tab-content" id="enemiesTab">
-                    <div class="controls-bar"><button id="addEnemyBtn" class="re-btn"><i class="fas fa-plus-circle"></i>
-                            Adicionar Inimigo</button></div>
+                    <div class="controls-bar">
+                        <button id="addEnemyBtn" class="re-btn"><i class="fas fa-plus-circle"></i> Adicionar Inimigo</button>
+                    </div>
                     <div class="card-list" id="enemyList">
                         <div class="empty-placeholder">Nenhum inimigo adicionado.</div>
                     </div>
@@ -137,8 +460,13 @@
                             <img src="" alt="Selecione um mapa na lista acima" id="masterMap">
                             <canvas id="fogOfWarCanvas"></canvas>
                         </div>
-                        <div class="map-tools"><button id="clearMapBtn" class="re-btn re-btn-secondary">Limpar
-                                Revelações</button></div>
+                        <div class="map-tools">
+                            <label class="switch">
+                                <input type="checkbox" id="toggleFogOfWar" checked>
+                                <span class="slider round"></span>
+                            </label>
+                            <span style="margin-left: 8px;">Névoa de Guerra Ativada</span>
+                        </div>
                     </div>
                 </div>
 
@@ -159,6 +487,18 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="tab-content" id="initiativeTab">
+                    <h3><i class="fas fa-list-ol"></i> Ordem de Iniciativa</h3>
+                    <div class="controls-bar">
+                        <button id="getInitiativeFromAllBtn" class="re-btn"><i class="fas fa-users-cog"></i> Coletar de Todos</button>
+                        <button id="nextInitiativeBtn" class="re-btn re-btn-secondary"><i class="fas fa-arrow-right"></i> Próximo</button>
+                        <button id="clearInitiativeBtn" class="re-btn re-btn-danger"><i class="fas fa-trash"></i> Limpar Lista</button>
+                    </div>
+                    <div id="initiativeList" class="initiative-list-container">
+                        <div class="empty-placeholder">A lista de iniciativa está vazia.</div>
+                    </div>
+                </div>
             </section>
         </main>
     </div>
@@ -170,25 +510,27 @@
         </div>
         <div class="chat-messages" id="masterChatMessages"></div>
         <div class="chat-input">
-            <input type="text" id="masterChatInput" placeholder="Digite uma mensagem..."><button id="sendMasterMsgBtn"
-                class="re-btn"><i class="fas fa-paper-plane"></i></button>
+            <input type="text" id="masterChatInput" placeholder="Digite uma mensagem..."><button id="sendMasterMsgBtn" class="re-btn"><i class="fas fa-paper-plane"></i></button>
         </div>
     </aside>
 
-    <!-- Modais -->
     <div id="confirmModal" class="master-modal">
         <div class="modal-content">
             <h2 id="confirmModalTitle">Confirmar</h2>
             <p id="confirmModalText"></p>
-            <div class="modal-actions"><button id="confirmBtn" class="re-btn re-btn-danger">Confirmar</button><button
-                    id="cancelBtn" class="re-btn re-btn-secondary">Cancelar</button></div>
+            <div class="modal-actions">
+                <button id="confirmBtn" class="re-btn re-btn-danger">Confirmar</button>
+                <button id="cancelBtn" class="re-btn re-btn-secondary">Cancelar</button>
+            </div>
         </div>
     </div>
+
     <div id="playerActionModal" class="master-modal">
         <div class="modal-content">
             <span class="close-modal" title="Fechar">&times;</span>
             <h2 id="playerActionTitle">Ações para:</h2>
             <input type="hidden" id="playerActionTargetId">
+
             <div class="form-section">
                 <h3><i class="fas fa-heartbeat"></i> Vida</h3>
                 <div class="health-control">
@@ -198,6 +540,7 @@
                     <button id="playerActionUpdateHealthBtn" class="re-btn">Atualizar</button>
                 </div>
             </div>
+
             <div class="form-section">
                 <h3><i class="fas fa-gift"></i> Enviar Item</h3>
                 <div class="item-send">
@@ -205,61 +548,122 @@
                     <button id="playerActionSendItemBtn" class="re-btn">Enviar</button>
                 </div>
             </div>
+
             <div class="form-section">
-                <h3><i class="fas fa-user-slash"></i> Gerenciar Jogador</h3>
-                <button id="playerActionKickBtn" class="re-btn re-btn-danger">Expulsar Jogador</button>
+                <h3><i class="fas fa-briefcase"></i> Inventário do Personagem</h3>
+                <div id="playerActionInventoryList" class="modal-inventory-list">
+                    <div class="empty-placeholder">Inventário vazio.</div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3><i class="fas fa-user-slash"></i> Gerenciar Personagem</h3>
+                <button id="playerActionKickBtn" class="re-btn re-btn-danger">Expulsar da Campanha</button>
             </div>
         </div>
     </div>
+
     <div id="itemModal" class="master-modal">
-        <div class="modal-content"><span class="close-modal">&times;</span>
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
             <h2 id="itemModalTitle"></h2>
-            <form id="itemForm"><input type="hidden" id="itemId">
+            <form id="itemForm">
+                <input type="hidden" id="itemId">
                 <div class="form-group">
                     <label for="itemName">Nome:</label>
                     <input type="text" id="itemName" required>
                 </div>
                 <div class="form-group">
-                    <label for="itemImage">URL da Imagem: 
+                    <label for="itemImage">URL da Imagem:
                         <button type="button" class="help-btn" data-modal="imageHelpModal" title="Como obter URL de imagem?">?</button>
                     </label>
                     <input type="url" id="itemImage" placeholder="https://imgur.com/link_da_imagem.png">
                 </div>
-                <div class="form-group"><label for="itemType">Tipo:</label><select id="itemType" required>
+                <div class="form-group">
+                    <label for="itemType">Tipo:</label>
+                    <select id="itemType" required>
                         <option value="misc">Diversos</option>
                         <option value="weapon">Arma</option>
                         <option value="healing">Cura</option>
                         <option value="key">Chave</option>
                         <option value="document">Documento</option>
-                    </select></div>
+                    </select>
+                </div>
                 <div id="item-specific-fields"></div>
-                <div class="form-group"><label for="itemDescription">Descrição:</label><textarea
-                        id="itemDescription"></textarea></div><button type="submit" class="re-btn">Salvar</button>
+                <div class="form-group">
+                    <label for="itemDescription">Descrição:</label>
+                    <textarea id="itemDescription"></textarea>
+                </div>
+                <button type="submit" class="re-btn">Salvar</button>
             </form>
         </div>
     </div>
+
     <div id="enemyModal" class="master-modal">
-        <div class="modal-content"><span class="close-modal">&times;</span>
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
             <h2 id="enemyModalTitle"></h2>
-            <form id="enemyForm"><input type="hidden" id="enemyId">
+            <form id="enemyForm">
+                <input type="hidden" id="enemyId">
                 <div class="form-group">
                     <label for="enemyName">Nome:</label>
                     <input type="text" id="enemyName" required>
                 </div>
                 <div class="form-group">
-                    <label for="enemyImage">URL da Imagem: 
-                         <button type="button" class="help-btn" data-modal="imageHelpModal" title="Como obter URL de imagem?">?</button>
+                    <label for="enemyImage">URL da Imagem:
+                        <button type="button" class="help-btn" data-modal="imageHelpModal" title="Como obter URL de imagem?">?</button>
                     </label>
                     <input type="url" id="enemyImage" placeholder="https://imgur.com/link_da_imagem.png">
                 </div>
-                <div class="form-group"><label for="enemyHealth">Vida:</label><input type="number" id="enemyHealth"
-                        min="1" required></div>
-                <div class="form-group"><label for="enemyDamage">Dano:</label><input type="text" id="enemyDamage"></div>
-                <div class="form-group"><label for="enemyBehavior">Comportamento:</label><textarea
-                        id="enemyBehavior"></textarea></div><button type="submit" class="re-btn">Salvar</button>
+                <div class="form-group">
+                    <label for="enemyHealth">Vida:</label>
+                    <input type="number" id="enemyHealth" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="enemyDamage">Dano:</label>
+                    <input type="text" id="enemyDamage">
+                </div>
+                <div class="form-group">
+                    <label for="enemyBehavior">Comportamento:</label>
+                    <textarea id="enemyBehavior"></textarea>
+                </div>
+                <button type="submit" class="re-btn">Salvar</button>
             </form>
         </div>
     </div>
+
+    <div id="npcModal" class="master-modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 id="npcModalTitle">Criar Novo NPC</h2>
+            <form id="npcForm">
+                <input type="hidden" id="npcId">
+                <div class="form-group">
+                    <label for="npcName">Nome:</label>
+                    <input type="text" id="npcName" required>
+                </div>
+                <div class="form-group">
+                    <label for="npcImage">URL da Imagem:</label>
+                    <input type="url" id="npcImage" placeholder="https://imgur.com/link_da_imagem.png">
+                </div>
+                <div class="form-group">
+                    <label for="npcHealth">Vida:</label>
+                    <input type="number" id="npcHealth" value="10" required>
+                </div>
+                <div class="form-group">
+                    <label for="npcAttributes">Atributos (Ex: Força: 10, Vitalidade: 12):</label>
+                    <textarea id="npcAttributes" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="npcCharacteristics">Características (Ex: Agressivo, Lento):</label>
+                    <textarea id="npcCharacteristics" rows="3"></textarea>
+                </div>
+                <button id="generateRandomNpcStatsBtn" type="button" class="re-btn re-btn-secondary">Gerar Status Aleatórios</button>
+                <button type="submit" class="re-btn" style="margin-top: 1.5rem; width: 100%;">Salvar NPC</button>
+            </form>
+        </div>
+    </div>
+
     <div id="imageHelpModal" class="master-modal">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
@@ -282,9 +686,9 @@
                     <li>Com a imagem ampliada, clique com o <strong>botão direito</strong> nela.</li>
                     <li>No menu, selecione a opção <strong>"Copiar link da imagem"</strong>.</li>
                 </ol>
-                 <p>Exemplo de link <strong>correto</strong>: <code>https://cdn.discordapp.com/attachments/.../imagem.png</code></p>
-                 <hr style="border-color: rgba(192,160,80,0.2); margin: 1rem 0;">
-                 <p><strong>Dica final:</strong> Para testar, cole o link em uma nova aba do navegador. Se a imagem aparecer sozinha, sem nenhum site ao redor, o link está correto!</p>
+                <p>Exemplo de link <strong>correto</strong>: <code>https://cdn.discordapp.com/attachments/.../imagem.png</code></p>
+                <hr style="border-color: rgba(192,160,80,0.2); margin: 1rem 0;">
+                <p><strong>Dica final:</strong> Para testar, cole o link em uma nova aba do navegador. Se a imagem aparecer sozinha, sem nenhum site ao redor, o link está correto!</p>
             </div>
         </div>
     </div>
@@ -293,14 +697,14 @@
 
     <script src="master.js" defer></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             document.body.addEventListener('click', (e) => {
                 if (e.target.classList.contains('help-btn')) {
                     e.preventDefault();
                     const modalId = e.target.dataset.modal;
                     if (modalId) {
                         const modal = document.getElementById(modalId);
-                        if(modal) modal.style.display = 'block';
+                        if (modal) modal.style.display = 'block';
                     }
                 }
                 if (e.target.classList.contains('close-modal')) {

@@ -357,7 +357,8 @@
 
             // --- LÓGICA DE AUTENTICAÇÃO ---
 
-            ui.registerBtn.addEventListener('click', (e) => {
+            // --- FUNÇÃO DE REGISTO (Refatorada para maior robustez) ---
+            ui.registerBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
                 const firstName = document.getElementById('registerFirstName').value.trim();
                 const lastName = document.getElementById('registerLastName').value.trim();
@@ -370,31 +371,28 @@
 
                 const fullName = `${firstName} ${lastName}`;
 
-                auth.createUserWithEmailAndPassword(email, password)
-                    .then((userCredential) => {
-                        // Atualiza o perfil com o nome completo
-                        return userCredential.user.updateProfile({
-                            displayName: fullName
-                        }).then(() => {
-                            // Envia o e-mail de verificação
-                            userCredential.user.sendEmailVerification().then(() => {
-                                showNotification('Registro concluído! Por favor, verifique sua caixa de entrada para ativar sua conta.', 'success');
-                            });
-                            auth.signOut();
-                            switchForm(ui.loginForm);
-                        });
-                    })
-                    .catch((error) => {
-                        if (error.code == 'auth/weak-password') {
-                            showNotification('A senha deve ter pelo menos 6 caracteres.', 'error');
-                        } else if (error.code == 'auth/email-already-in-use') {
-                            showNotification('Este e-mail já está em uso.', 'error');
-                        } else {
-                            showNotification(`Erro no registro: ${error.message}`, 'error');
-                        }
-                    });
+                try {
+                    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                    await userCredential.user.updateProfile({ displayName: fullName });
+                    await userCredential.user.sendEmailVerification();
+                    await auth.signOut();
+                    
+                    showNotification('Registro concluído! Por favor, verifique sua caixa de entrada para ativar sua conta.', 'success');
+                    switchForm(ui.loginForm);
+
+                } catch (error) {
+                    if (error.code == 'auth/weak-password') {
+                        showNotification('A senha deve ter pelo menos 6 caracteres.', 'error');
+                    } else if (error.code == 'auth/email-already-in-use') {
+                        showNotification('Este e-mail já está em uso.', 'error');
+                    } else {
+                        console.error("Erro de Registo:", error);
+                        showNotification(`Erro no registro: ${error.message}`, 'error');
+                    }
+                }
             });
 
+            // --- FUNÇÃO DE LOGIN (Com tratamento de erro específico) ---
             ui.loginBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 const email = document.getElementById('loginEmail').value;
@@ -414,11 +412,12 @@
                         }
                     })
                     .catch((error) => {
-                         if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                         if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
                             showNotification('Senha errada ou alterada. Tente novamente.', 'error');
                         } else if (error.code === 'auth/user-not-found') {
                             showNotification('E-mail não encontrado. Verifique o e-mail ou registre-se.', 'error');
                         } else {
+                            console.error("Erro de Login:", error);
                             showNotification(`Erro no login: ${error.message}`, 'error');
                         }
                     });

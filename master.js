@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const eventsRef = campaignRef.collection('events');
     const mapsRef = campaignRef.collection('maps');
     const mapStateRef = campaignRef.collection('mapState').doc('current');
+    const initiativeRef = campaignRef.collection('initiative'); // NOVA REFERÊNCIA
 
     // --- REFERÊNCIAS DA UI ---
     const ui = {
@@ -43,6 +44,7 @@ document.addEventListener('DOMContentLoaded', function () {
         endSessionBtn: document.getElementById('endSessionBtn'),
         masterLogoutBtn: document.getElementById('masterLogoutBtn'),
         playerList: document.getElementById('playerList'),
+        npcList: document.getElementById('npcList'), // NOVO
         playerCount: document.getElementById('playerCount'),
         addNpcBtn: document.getElementById('addNpcBtn'),
         tabs: document.querySelectorAll('.tab-btn'),
@@ -57,15 +59,15 @@ document.addEventListener('DOMContentLoaded', function () {
         enemyModal: document.getElementById('enemyModal'),
         enemyForm: document.getElementById('enemyForm'),
         fogOfWarCanvas: document.getElementById('fogOfWarCanvas'),
+        toggleFogOfWar: document.getElementById('toggleFogOfWar'), // NOVO
         masterMap: document.getElementById('masterMap'),
-        clearMapBtn: document.getElementById('clearMapBtn'),
         diceBtns: document.querySelectorAll('.dice-btn'),
         diceQuantityInput: document.getElementById('diceQuantityInput'),
         masterChat: document.querySelector('.master-chat'),
         masterChatMessages: document.getElementById('masterChatMessages'),
         masterChatInput: document.getElementById('masterChatInput'),
         sendMasterMsgBtn: document.getElementById('sendMasterMsgBtn'),
-        toggleChatBtn: document.getElementById('toggleChatBtn'), 
+        toggleChatBtn: document.getElementById('toggleChatBtn'),
         confirmModal: document.getElementById('confirmModal'),
         playerActionModal: document.getElementById('playerActionModal'),
         mapNameInput: document.getElementById('mapNameInput'),
@@ -73,10 +75,32 @@ document.addEventListener('DOMContentLoaded', function () {
         addMapBtn: document.getElementById('addMapBtn'),
         mapList: document.getElementById('mapList'),
         playerActionKickBtn: document.getElementById('playerActionKickBtn'),
+        npcModal: document.getElementById('npcModal'), // NOVO
+        npcForm: document.getElementById('npcForm'), // NOVO
+        generateRandomNpcStatsBtn: document.getElementById('generateRandomNpcStatsBtn'), // NOVO
+        initiativeList: document.getElementById('initiativeList'), // NOVO
+        getInitiativeFromAllBtn: document.getElementById('getInitiativeFromAllBtn'), // NOVO
+        nextInitiativeBtn: document.getElementById('nextInitiativeBtn'), // NOVO
+        clearInitiativeBtn: document.getElementById('clearInitiativeBtn'), // NOVO
     };
 
     // --- ESTADO DA APLICAÇÃO ---
-    let appState = { players: [], items: [], enemies: [], maps: [], currentUser: null, masterInfo: {}, activeMapId: null, campaignMaxPlayers: 6, map: { ctx: null, revealedAreas: [] } };
+    let appState = {
+        players: [],
+        npcs: [], // NOVO
+        items: [],
+        enemies: [],
+        maps: [],
+        initiativeList: [], // NOVO
+        currentUser: null,
+        masterInfo: {},
+        activeMapId: null,
+        campaignMaxPlayers: 6,
+        map: {
+            ctx: null,
+            fogIsActive: true
+        } // Fim do 'map'
+    };
 
     // --- FUNÇÕES DE FEEDBACK VISUAL ---
     const showNotification = (message, type = 'info') => {
@@ -87,30 +111,140 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => notification.remove(), 4000);
     };
 
+    const handleUseItem = async (characterId, itemIndex) => {
+        const characterDocRef = playersRef.doc(characterId);
+        
+        try {
+            await db.runTransaction(async (transaction) => {
+                const charDoc = await transaction.get(characterDocRef);
+                if (!charDoc.exists) { throw "Personagem não encontrado!"; }
+                
+                const charData = charDoc.data();
+                const inventory = charData.inventory || [];
+                const item = inventory[itemIndex];
+
+                if (!item || item.type !== 'healing') {
+                    showNotification('Este item não pode ser usado para curar.', 'error');
+                    return;
+                }
+
+                // Aplica a cura
+                const newHealth = Math.min(charData.maxHealth, charData.health + item.healAmount);
+                transaction.update(characterDocRef, { health: newHealth });
+                
+                // Remove o item do inventário
+                inventory.splice(itemIndex, 1);
+                // Preenche o final para manter o tamanho 8
+                while (inventory.length < 8) {
+                    inventory.push(null);
+                }
+                transaction.update(characterDocRef, { inventory: inventory });
+                showNotification(`${charData.name} usou ${item.name} e recuperou vida.`, 'success');
+            });
+        } catch (error) {
+            showNotification(`Erro ao usar item: ${error}`, 'error');
+        }
+    };
+
+    const handleTransferItem = async (sourceCharacterId, itemIndex) => {
+        // Cria uma lista de possíveis alvos
+        const targets = [...appState.players, ...appState.npcs].filter(p => p.id !== sourceCharacterId);
+        if (targets.length === 0) {
+            showNotification('Não há outros personagens para transferir o item.', 'info');
+            return;
+        }
+
+        let optionsHtml = '<option value="">Selecione um alvo...</option>';
+        targets.forEach(t => optionsHtml += `<option value="${t.id}">${t.name}</option>`);
+
+        // Usa um modal de confirmação com um select
+        const targetId = await new Promise(resolve => {
+            const modal = ui.confirmModal;
+            modal.querySelector('#confirmModalTitle').textContent = 'Transferir Item';
+            modal.querySelector('#confirmModalText').innerHTML = `Para quem você deseja transferir este item?<br><select id="transferTargetSelect" class="form-group" style="width:100%; margin-top:1rem;">${optionsHtml}</select>`;
+            modal.style.display = 'block';
+            modal.querySelector('#confirmBtn').onclick = () => {
+                const selectedId = modal.querySelector('#transferTargetSelect').value;
+                if (selectedId) {
+                    modal.style.display = 'none';
+                    resolve(selectedId);
+                }
+            };
+            modal.querySelector('#cancelBtn').onclick = () => {
+                modal.style.display = 'none';
+                resolve(null);
+            };
+        });
+        
+        if (!targetId) return; // Transferência cancelada
+
+        const sourceDocRef = playersRef.doc(sourceCharacterId);
+        const targetDocRef = playersRef.doc(targetId);
+
+        try {
+            await db.runTransaction(async (transaction) => {
+                const sourceDoc = await transaction.get(sourceDocRef);
+                const targetDoc = await transaction.get(targetDocRef);
+
+                if (!sourceDoc.exists || !targetDoc.exists) { throw "Personagem não encontrado!"; }
+                
+                const sourceData = sourceDoc.data();
+                const targetData = targetDoc.data();
+                const sourceInventory = sourceData.inventory || [];
+                const targetInventory = targetData.inventory || [];
+
+                const itemToTransfer = sourceInventory[itemIndex];
+                if (!itemToTransfer) { throw "O item não existe mais!"; }
+
+                const emptySlot = targetInventory.findIndex(slot => slot === null);
+                if (emptySlot === -1) { throw `O inventário de ${targetData.name} está cheio!`; }
+                
+                // Remove do inventário de origem
+                sourceInventory.splice(itemIndex, 1);
+                while(sourceInventory.length < 8) { sourceInventory.push(null); }
+                
+                // Adiciona ao inventário de destino
+                targetInventory[emptySlot] = itemToTransfer;
+
+                transaction.update(sourceDocRef, { inventory: sourceInventory });
+                transaction.update(targetDocRef, { inventory: targetInventory });
+
+                showNotification('Item transferido com sucesso!', 'success');
+            });
+        } catch (error) {
+            showNotification(`Erro na transferência: ${error}`, 'error');
+        }
+    };
+
     const showConfirmation = (title, text) => {
         return new Promise((resolve) => {
             ui.confirmModal.querySelector('#confirmModalTitle').textContent = title;
             ui.confirmModal.querySelector('#confirmModalText').textContent = text;
             ui.confirmModal.style.display = 'block';
-            ui.confirmModal.querySelector('#confirmBtn').onclick = () => { ui.confirmModal.style.display = 'none'; resolve(true); };
-            ui.confirmModal.querySelector('#cancelBtn').onclick = () => { ui.confirmModal.style.display = 'none'; resolve(false); };
+            ui.confirmModal.querySelector('#confirmBtn').onclick = () => {
+                ui.confirmModal.style.display = 'none';
+                resolve(true);
+            };
+            ui.confirmModal.querySelector('#cancelBtn').onclick = () => {
+                ui.confirmModal.style.display = 'none';
+                resolve(false);
+            };
         });
     };
 
     // --- FUNÇÕES DE RENDERIZAÇÃO ---
     const renderPlayers = () => {
         ui.playerList.innerHTML = '';
-        
-        // NOVO: Filtra os jogadores para não incluir o mestre na lista da UI
         const displayPlayers = appState.players.filter(p => p.id !== appState.masterInfo.id);
 
-        if(displayPlayers.length === 0) {
+        if (displayPlayers.length === 0) {
             ui.playerList.innerHTML = '<div class="empty-placeholder">Nenhum jogador conectado</div>';
         } else {
-             displayPlayers.forEach(player => {
+            displayPlayers.forEach(player => {
                 const p = document.createElement('div');
-                p.className = `player-item ${player.type === 'npc' ? 'npc-player' : ''}`;
+                p.className = 'player-item';
                 p.dataset.playerId = player.id;
+                // O resto da lógica para renderizar o jogador...
                 const health = player.health || 0;
                 const maxHealth = player.maxHealth || 1;
                 const healthPercent = (health / maxHealth) * 100;
@@ -127,11 +261,93 @@ document.addEventListener('DOMContentLoaded', function () {
                 ui.playerList.appendChild(p);
             });
         }
-       
-        // NOVO: Contagem de jogadores também exclui o mestre
-        const playerCount = appState.players.filter(p => p.id !== appState.masterInfo.id).length;
-        ui.playerCount.textContent = `(${playerCount}/${appState.campaignMaxPlayers || 'N/A'})`;
+        ui.playerCount.textContent = `(${displayPlayers.length}/${appState.campaignMaxPlayers || 'N/A'})`;
     };
+
+    const renderNpcs = () => {
+        ui.npcList.innerHTML = '';
+        if (appState.npcs.length === 0) {
+            ui.npcList.innerHTML = '<div class="empty-placeholder">Nenhum NPC criado</div>';
+        } else {
+            appState.npcs.forEach(npc => {
+                const p = document.createElement('div');
+                p.className = 'player-item npc-item';
+                p.dataset.playerId = npc.id;
+
+                const health = npc.health || 0;
+                const maxHealth = npc.maxHealth || npc.health || 10;
+
+                // --- LÓGICA DA BARRA DE VIDA (COPIADA DOS PLAYERS) ---
+                const healthPercent = (health / maxHealth) * 100;
+                let healthClass = 'health-red';
+                if (healthPercent > 60) healthClass = 'health-green';
+                else if (healthPercent > 30) healthClass = 'health-yellow';
+                // --- FIM DA LÓGICA DA BARRA DE VIDA ---
+
+                let inventoryHtml = '';
+                if (npc.inventory && npc.inventory.some(item => item !== null)) {
+                    inventoryHtml += '<div class="npc-inventory"><ul class="npc-inventory-list">';
+                    npc.inventory.forEach(item => {
+                        if (item) {
+                            let iconClass = 'fa-question-circle';
+                            if (item.type === 'weapon') iconClass = 'fa-crosshairs';
+                            if (item.type === 'healing') iconClass = 'fa-heart';
+                            if (item.type === 'key') iconClass = 'fa-key';
+                            if (item.type === 'document') iconClass = 'fa-file-alt';
+                            
+                            inventoryHtml += `<li class="npc-inventory-item"><i class="fas ${iconClass}"></i>${item.name}</li>`;
+                        }
+                    });
+                    inventoryHtml += '</ul></div>';
+                }
+
+                // --- HTML ATUALIZADO COM A BARRA DE VIDA ---
+                p.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3>${npc.name} <span>${health}/${maxHealth}</span></h3>
+                        <div>
+                            <button class="npc-dice-roll-btn re-btn-secondary" data-npc-id="${npc.id}" data-npc-name="${npc.name}" title="Rolar Dado para ${npc.name}"><i class="fas fa-dice-d20"></i></button>
+                        </div>
+                    </div>
+                    <div class="player-health"><progress class="${healthClass}" value="${health}" max="${maxHealth}"></progress></div>
+                    ${npc.image ? `<img src="${npc.image}" alt="${npc.name}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; margin-top: 5px;">` : ''}
+                    ${inventoryHtml}
+                `;
+                p.addEventListener('click', (e) => {
+                    if (!e.target.closest('.npc-dice-roll-btn')) {
+                        openPlayerActionModal(npc);
+                    }
+                });
+                ui.npcList.appendChild(p);
+            });
+        }
+    };
+
+    const renderInitiativeList = () => {
+        ui.initiativeList.innerHTML = '';
+        if (appState.initiativeList.length === 0) {
+            ui.initiativeList.innerHTML = '<div class="empty-placeholder">A lista de iniciativa está vazia.</div>';
+            return;
+        }
+
+        appState.initiativeList.forEach((char, index) => {
+            const item = document.createElement('div');
+            item.className = 'initiative-item';
+            if (char.isActiveTurn) {
+                item.classList.add('active');
+            }
+            
+            // HTML atualizado para incluir o número da ordem
+            item.innerHTML = `
+                <div class="order-number">${index + 1}</div>
+                <span class="name">${char.name}</span>
+                <span class="score">Iniciativa: ${char.initiativeScore}</span>
+                <button class="remove-from-initiative-btn" data-id="${char.id}" title="Remover da Iniciativa">&times;</button>
+            `;
+            ui.initiativeList.appendChild(item);
+        });
+    };
+
 
     const renderGenericList = (list, container, renderFunc) => {
         container.innerHTML = list.length === 0 ? `<div class="empty-placeholder">Nenhum registro encontrado.</div>` : '';
@@ -211,18 +427,27 @@ document.addEventListener('DOMContentLoaded', function () {
         if (form) form.reset();
 
         const entityName = modalId.replace('Modal', '');
-        modal.querySelector('h2').textContent = data.id ? `Editar ${entityName.charAt(0).toUpperCase() + entityName.slice(1)}` : `Criar Novo ${entityName.charAt(0).toUpperCase() + entityName.slice(1)}`;
-        if (form) form.querySelector('input[type="hidden"]').value = data.id || '';
+        const titleElement = modal.querySelector('h2');
+        const hiddenIdInput = form ? form.querySelector('input[type="hidden"]') : null;
+
+        if (titleElement) {
+            titleElement.textContent = data.id ? `Editar ${entityName.charAt(0).toUpperCase() + entityName.slice(1)}` : `Criar Novo ${entityName.charAt(0).toUpperCase() + entityName.slice(1)}`;
+        }
+        if (hiddenIdInput) {
+            hiddenIdInput.value = data.id || '';
+        }
 
         if (form) {
             for (const element of form.elements) {
-                const fieldName = element.id.replace(entityName, '').toLowerCase();
-                if (data[fieldName] !== undefined) {
-                    element.value = data[fieldName];
+                if (element.id) {
+                    const fieldName = element.id.replace(new RegExp(`^${entityName}`, 'i'), '').toLowerCase();
+                    if (data[fieldName] !== undefined) {
+                        element.value = data[fieldName];
+                    }
                 }
             }
         }
-
+        
         if (modalId === 'itemModal') {
             updateItemSpecificFields(data.type || 'misc', data);
         }
@@ -246,48 +471,67 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    const openPlayerActionModal = (player) => {
+    const openPlayerActionModal = (character) => {
         const modal = ui.playerActionModal;
-        modal.querySelector('#playerActionTitle').textContent = `Ações para: ${player.name}`;
-        modal.querySelector('#playerActionTargetId').value = player.id;
-        modal.querySelector('#playerActionHealth').value = player.health || 0;
-        modal.querySelector('#playerActionMaxHealth').value = player.maxHealth || 0;
+        modal.querySelector('#playerActionTitle').textContent = `Ações para: ${character.name}`;
+        modal.querySelector('#playerActionTargetId').value = character.id;
+        modal.querySelector('#playerActionHealth').value = character.health || 0;
+        
+        const maxHealth = character.maxHealth || character.health || 10;
+        modal.querySelector('#playerActionMaxHealth').value = maxHealth;
+        
+        ui.playerActionKickBtn.textContent = character.type === 'npc' ? 'Deletar NPC' : 'Expulsar Jogador';
 
         const itemSelect = modal.querySelector('#playerActionItemSelect');
         itemSelect.innerHTML = '<option value="">Selecione um item...</option>';
         appState.items.forEach(item => itemSelect.innerHTML += `<option value="${item.id}">${item.name}</option>`);
 
-        modal.style.display = 'block';
-    };
+        // --- LÓGICA DE RENDERIZAÇÃO DO INVENTÁRIO ---
+        const inventoryList = modal.querySelector('#playerActionInventoryList');
+        inventoryList.innerHTML = '';
+        const inventory = character.inventory || [];
 
-    // --- LÓGICA DE INTERAÇÃO COM FIRESTORE ---
-    const handleDelete = async (collectionName, docId, entityName) => {
-        const confirmed = await showConfirmation(`Excluir ${entityName}`, `Tem certeza que deseja excluir? Esta ação não pode ser desfeita.`);
-        if (confirmed) {
-            campaignRef.collection(collectionName).doc(docId).delete()
-                .then(() => showNotification(`${entityName} excluído com sucesso.`, 'success'))
-                .catch(err => showNotification(`Erro ao excluir: ${err.message}`, 'error'));
+        if (inventory.every(slot => slot === null)) {
+            inventoryList.innerHTML = '<div class="empty-placeholder">Inventário vazio.</div>';
+        } else {
+            inventory.forEach((item, index) => {
+                if (item) {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'modal-inventory-item';
+                    
+                    let useButton = '';
+                    if (item.type === 'healing') {
+                        useButton = `<button class="re-btn use-item-btn" data-character-id="${character.id}" data-item-index="${index}">Usar</button>`;
+                    }
+
+                    itemEl.innerHTML = `
+                        <span class="item-name">${item.name}</span>
+                        <div class="item-actions">
+                            ${useButton}
+                            <button class="re-btn re-btn-secondary transfer-item-btn" data-character-id="${character.id}" data-item-index="${index}">Transferir</button>
+                        </div>
+                    `;
+                    inventoryList.appendChild(itemEl);
+                }
+            });
         }
+        
+        modal.style.display = 'block';
     };
 
     const handleKickPlayer = async () => {
         const playerId = document.getElementById('playerActionTargetId').value;
-        const player = appState.players.find(p => p.id === playerId);
+        const player = [...appState.players, ...appState.npcs].find(p => p.id === playerId);
         if (!player) return;
 
-        const confirmed = await showConfirmation(
-            `Expulsar ${player.name}`,
-            `Tem certeza que deseja remover permanentemente este jogador da campanha?`
-        );
+        const actionText = player.type === 'npc' ? 'deletar permanentemente este NPC' : 'remover permanentemente este jogador da campanha';
+        const titleText = player.type === 'npc' ? `Deletar ${player.name}` : `Expulsar ${player.name}`;
+
+        const confirmed = await showConfirmation(titleText, `Tem certeza que deseja ${actionText}?`);
 
         if (confirmed) {
-            // Remove da lista de jogadores e deleta a ficha
-            const batch = db.batch();
-            batch.update(campaignRef, { players: firebase.firestore.FieldValue.arrayRemove(playerId) });
-            batch.delete(playersRef.doc(playerId));
-            
-            await batch.commit();
-            showNotification(`${player.name} foi expulso da campanha.`, 'success');
+            await playersRef.doc(playerId).delete();
+            showNotification(`${player.name} foi removido(a).`, 'success');
             closeModal('playerActionModal');
         }
     };
@@ -298,8 +542,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const maxHealth = parseInt(document.getElementById('playerActionMaxHealth').value);
         if (isNaN(health) || isNaN(maxHealth)) return showNotification("Valores de vida inválidos.", "error");
 
-        playersRef.doc(playerId).update({ health, maxHealth })
-            .then(() => showNotification("Vida do jogador atualizada.", "success"))
+        playersRef.doc(playerId).update({
+                health,
+                maxHealth
+            })
+            .then(() => showNotification("Vida do personagem atualizada.", "success"))
             .catch(err => showNotification(`Erro: ${err.message}`, "error"));
     };
 
@@ -309,10 +556,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!itemId) return showNotification("Selecione um item.", "error");
 
         const item = appState.items.find(i => i.id === itemId);
-        const player = appState.players.find(p => p.id === playerId);
+        const player = [...appState.players, ...appState.npcs].find(p => p.id === playerId);
 
         const playerDoc = await playersRef.doc(playerId).get();
-        if (!playerDoc.exists) return showNotification("Jogador não encontrado.", "error");
+        if (!playerDoc.exists) return showNotification("Personagem não encontrado.", "error");
 
         const playerData = playerDoc.data();
         const inventory = playerData.inventory || Array(8).fill(null);
@@ -322,31 +569,39 @@ document.addEventListener('DOMContentLoaded', function () {
             return showNotification(`Inventário de ${player.name} está cheio!`, 'error');
         }
 
-        inventory[emptySlotIndex] = item;
+        // --- CORREÇÃO APLICADA AQUI ---
+        // Cria uma cópia simples do objeto do item antes de salvar.
+        inventory[emptySlotIndex] = { ...item };
 
-        await playersRef.doc(playerId).update({ inventory: inventory });
-
-        eventsRef.add({
-            type: 'item_received',
-            recipientId: player.id,
-            item: item,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-            text: `${appState.masterInfo.name || 'Mestre'} enviou ${item.name} para ${player.name}.`
-        }).then(() => {
-            showNotification(`Item enviado para ${player.name}.`, 'success');
-            closeModal('playerActionModal');
+        await playersRef.doc(playerId).update({
+            inventory: inventory
         });
+
+        // Apenas envia notificação no chat se for para um jogador real
+        if (player.type !== 'npc') {
+            eventsRef.add({
+                type: 'item_received',
+                recipientId: player.id,
+                item: item,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                text: `${appState.masterInfo.name || 'Mestre'} enviou ${item.name} para ${player.name}.`
+            });
+        }
+
+        showNotification(`Item enviado para ${player.name}.`, 'success');
+        closeModal('playerActionModal');
     };
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
         const form = e.target;
         const id = form.querySelector('input[type="hidden"]').value;
-        let data, collection, entityName;
+        let data, collection, entityName, closeModalId;
 
         if (form.id === 'itemForm') {
             entityName = 'Item';
             collection = itemsRef;
+            closeModalId = 'itemModal';
             data = {
                 name: form.itemName.value,
                 image: form.itemImage.value,
@@ -360,6 +615,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else if (form.id === 'enemyForm') {
             entityName = 'Inimigo';
             collection = enemiesRef;
+            closeModalId = 'enemyModal';
             data = {
                 name: form.enemyName.value,
                 image: form.enemyImage.value,
@@ -367,16 +623,30 @@ document.addEventListener('DOMContentLoaded', function () {
                 damage: form.enemyDamage.value,
                 behavior: form.enemyBehavior.value,
             };
+        } else if (form.id === 'npcForm') { // NOVO FORMULÁRIO DE NPC
+            entityName = 'NPC';
+            collection = playersRef;
+            closeModalId = 'npcModal';
+            data = {
+                name: ui.npcForm.npcName.value,
+                image: ui.npcForm.npcImage.value,
+                health: parseInt(ui.npcForm.npcHealth.value),
+                maxHealth: parseInt(ui.npcForm.npcHealth.value),
+                attributes: ui.npcForm.npcAttributes.value,
+                characteristics: ui.npcForm.npcCharacteristics.value,
+                type: 'npc', // Define o tipo
+                inventory: Array(8).fill(null), // Cria inventário vazio
+            };
         }
 
         const promise = id ? collection.doc(id).update(data) : collection.add({ ...data, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
         promise.then(() => {
             showNotification(`${entityName} ${id ? 'atualizado' : 'criado'}!`, 'success');
-            closeModal(`${entityName.toLowerCase()}Modal`);
+            closeModal(closeModalId);
         }).catch(err => showNotification(`Erro: ${err.message}`, 'error'));
     };
 
-    // --- LÓGICA DO MAPA ---
+    // --- LÓGICA DO MAPA (SIMPLIFICADA) ---
     const setupMap = () => {
         const canvas = ui.fogOfWarCanvas;
         const mapImage = ui.masterMap;
@@ -385,39 +655,21 @@ document.addEventListener('DOMContentLoaded', function () {
         const resizeCanvas = () => {
             canvas.width = mapImage.clientWidth;
             canvas.height = mapImage.clientHeight;
-            drawRevealedAreas();
+            updateFogOfWar(); // Chama a nova função
         };
         mapImage.onload = resizeCanvas;
         window.addEventListener('resize', resizeCanvas);
         if (mapImage.complete) resizeCanvas();
-
-        let isDrawing = false;
-        let startX, startY;
-        canvas.addEventListener('mousedown', (e) => { isDrawing = true; startX = e.offsetX; startY = e.offsetY; });
-        canvas.addEventListener('mouseup', (e) => {
-            if (!isDrawing) return;
-            isDrawing = false;
-            const newArea = {
-                x: startX / canvas.width, y: startY / canvas.height,
-                w: (e.offsetX - startX) / canvas.width, h: (e.offsetY - startY) / canvas.height,
-            };
-            mapStateRef.set({ revealed: firebase.firestore.FieldValue.arrayUnion(newArea) }, { merge: true });
-        });
     };
 
-    const drawRevealedAreas = () => {
-        const { ctx, revealedAreas } = appState.map;
+    const updateFogOfWar = () => {
+        const { ctx } = appState.map;
         if (!ctx) return;
         const canvas = ui.fogOfWarCanvas;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        if (revealedAreas && revealedAreas.length > 0) {
-            ctx.globalCompositeOperation = 'destination-out';
-            revealedAreas.forEach(area => {
-                ctx.fillRect(area.x * canvas.width, area.y * canvas.height, area.w * canvas.width, area.h * canvas.height);
-            });
-            ctx.globalCompositeOperation = 'source-over';
+        if (appState.map.fogIsActive) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
     };
 
@@ -427,7 +679,9 @@ document.addEventListener('DOMContentLoaded', function () {
             if (user) {
                 appState.currentUser = user;
                 loadInitialData();
-            } else { window.location.href = 'index.html'; }
+            } else {
+                window.location.href = 'index.html';
+            }
         });
     };
 
@@ -436,39 +690,65 @@ document.addEventListener('DOMContentLoaded', function () {
             if (doc.exists) {
                 const data = doc.data();
                 appState.campaignMaxPlayers = data.maxPlayers;
-                appState.masterInfo = { id: data.masterId, name: data.masterName };
+                appState.masterInfo = {
+                    id: data.masterId,
+                    name: data.masterName
+                };
                 appState.activeMapId = data.activeMapId;
                 ui.campaignTitle.textContent = data.name;
                 ui.campaignCode.textContent = data.code;
                 ui.masterNotes.value = data.masterNotes || '';
                 renderMapList();
             } else {
-                // Se o documento não existe, é porque foi deletado. Redireciona.
                 showNotification("A campanha foi encerrada ou deletada.", "info");
-                setTimeout(() => { window.location.href = 'campaign.html'; }, 2000);
+                setTimeout(() => {
+                    window.location.href = 'campaign.html';
+                }, 2000);
             }
         });
 
         playersRef.orderBy('name').onSnapshot(snap => {
-            appState.players = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const allCharacters = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            // Separa jogadores e NPCs
+            appState.players = allCharacters.filter(p => p.type !== 'npc');
+            appState.npcs = allCharacters.filter(p => p.type === 'npc');
             renderPlayers();
+            renderNpcs();
         });
+
         itemsRef.orderBy('name').onSnapshot(snap => {
-            appState.items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            appState.items = snap.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
             renderGenericList(appState.items, ui.masterItemList, renderItemCard);
         });
         enemiesRef.orderBy('name').onSnapshot(snap => {
-            appState.enemies = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            appState.enemies = snap.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
             renderGenericList(appState.enemies, ui.enemyList, renderEnemyCard);
         });
         mapsRef.orderBy('name').onSnapshot(snap => {
-            appState.maps = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            appState.maps = snap.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
             renderMapList();
         });
         mapStateRef.onSnapshot(doc => {
-            appState.map.revealedAreas = doc.exists && doc.data().revealed ? doc.data().revealed : [];
-            drawRevealedAreas();
+            // Atualiza o estado da névoa
+            appState.map.fogIsActive = doc.exists && doc.data().fogIsActive !== undefined ? doc.data().fogIsActive : true;
+            ui.toggleFogOfWar.checked = appState.map.fogIsActive;
+            updateFogOfWar();
         });
+
+        initiativeRef.orderBy('initiativeScore', 'desc').onSnapshot(snap => {
+            appState.initiativeList = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderInitiativeList();
+        });
+
         eventsRef.orderBy('timestamp', 'desc').limit(50).onSnapshot(snapshot => {
             ui.masterChatMessages.innerHTML = '';
             const docs = snapshot.docs.reverse();
@@ -480,23 +760,123 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     };
+    
+    // --- LÓGICA DE GERAÇÃO ALEATÓRIA PARA NPCS ---
+    const generateRandomNpcStats = () => {
+        const attributes = ["Força", "Agilidade", "Vitalidade", "Inteligência", "Percepção"];
+        const characteristics = ["Agressivo", "Medroso", "Calmo", "Oportunista", "Lento", "Rápido", "Silencioso", "Barulhento", "Defensivo"];
+        
+        let randomAttributes = attributes.map(attr => {
+            const value = Math.floor(Math.random() * 8) + 5; // Gera valor entre 5 e 12
+            return `${attr}: ${value}`;
+        }).join(', ');
+
+        let randomCharacteristics = characteristics[Math.floor(Math.random() * characteristics.length)];
+
+        ui.npcForm.npcAttributes.value = randomAttributes;
+        ui.npcForm.npcCharacteristics.value = randomCharacteristics;
+        ui.npcForm.npcHealth.value = Math.floor(Math.random() * 15) + 5; // Vida entre 5 e 20
+    };
+
+    // --- LÓGICA DA INICIATIVA ---
+    const handleGetInitiative = async () => {
+        const confirmed = await showConfirmation('Coletar Iniciativas', 'Isso irá limpar a lista atual e pedir novos valores para todos os jogadores e NPCs. Deseja continuar?');
+        if (!confirmed) return;
+
+        const allCharacters = [...appState.players, ...appState.npcs].filter(c => c.id !== appState.masterInfo.id);
+        if (allCharacters.length === 0) {
+            showNotification('Não há jogadores ou NPCs para adicionar à iniciativa.', 'info');
+            return;
+        }
+
+        let initiatives = [];
+        for (const char of allCharacters) {
+            const scoreStr = prompt(`Digite a iniciativa para ${char.name}:`);
+            const score = parseInt(scoreStr);
+            if (!isNaN(score)) {
+                initiatives.push({
+                    name: char.name,
+                    characterId: char.id,
+                    initiativeScore: score,
+                });
+            }
+        }
+
+        if (initiatives.length === 0) return;
+
+        initiatives.sort((a, b) => b.initiativeScore - a.initiativeScore);
+        
+        // Adiciona a propriedade 'isActiveTurn'
+        const finalInitiativeList = initiatives.map((char, index) => ({
+            ...char,
+            isActiveTurn: index === 0
+        }));
+
+        // Limpa a iniciativa antiga no Firebase
+        const oldInitiativeDocs = await initiativeRef.get();
+        const batch = db.batch();
+        oldInitiativeDocs.docs.forEach(doc => batch.delete(doc.ref));
+
+        // Adiciona a nova lista ordenada
+        finalInitiativeList.forEach(char => {
+            const newInitiativeDoc = initiativeRef.doc();
+            // Adicionamos o ID do documento ao objeto para renderização imediata
+            char.id = newInitiativeDoc.id;
+            batch.set(newInitiativeDoc, { ...char });
+        });
+
+        await batch.commit();
+
+        // --- CORREÇÃO APLICADA AQUI ---
+        // Força a atualização do estado local e a renderização imediata da lista
+        appState.initiativeList = finalInitiativeList;
+        renderInitiativeList();
+        
+        showNotification('Lista de iniciativa atualizada e ordenada!', 'success');
+    };
+
+    const handleNextInitiative = async () => {
+        if (appState.initiativeList.length === 0) return;
+
+        const currentIndex = appState.initiativeList.findIndex(char => char.isActiveTurn);
+        if (currentIndex === -1) { // Ninguém é o ativo, define o primeiro
+            await initiativeRef.doc(appState.initiativeList[0].id).update({ isActiveTurn: true });
+            return;
+        }
+
+        const nextIndex = (currentIndex + 1) % appState.initiativeList.length;
+        
+        const batch = db.batch();
+        batch.update(initiativeRef.doc(appState.initiativeList[currentIndex].id), { isActiveTurn: false });
+        batch.update(initiativeRef.doc(appState.initiativeList[nextIndex].id), { isActiveTurn: true });
+        await batch.commit();
+    };
+
+    const handleClearInitiative = async () => {
+        const confirmed = await showConfirmation('Limpar Iniciativa', 'Tem certeza que deseja remover todos da lista de iniciativa?');
+        if(confirmed) {
+            const oldInitiative = await initiativeRef.get();
+            const batch = db.batch();
+            oldInitiative.docs.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+            showNotification('Lista de iniciativa limpa.', 'success');
+        }
+    };
+
 
     const setupUIEvents = () => {
         ui.copyCodeBtn.addEventListener('click', () => navigator.clipboard.writeText(ui.campaignCode.textContent).then(() => showNotification('Código copiado!', 'success')));
-        ui.saveNotesBtn.addEventListener('click', () => campaignRef.update({ masterNotes: ui.masterNotes.value }).then(() => showNotification('Anotações salvas.', 'success')));
-        
-        // NOVO: Lógica destrutiva para encerrar a sessão
-        ui.endSessionBtn.addEventListener('click', async () => { 
+        ui.saveNotesBtn.addEventListener('click', () => campaignRef.update({
+            masterNotes: ui.masterNotes.value
+        }).then(() => showNotification('Anotações salvas.', 'success')));
+
+        ui.endSessionBtn.addEventListener('click', async () => {
             const confirmed = await showConfirmation('Encerrar Sessão', 'ATENÇÃO: Isso deletará PERMANENTEMENTE a campanha e todos os seus dados. Deseja continuar?');
-            if (confirmed) { 
-                // Idealmente, isso seria feito com uma Cloud Function para garantir a atomicidade.
-                // A abordagem no cliente é deletar o documento principal, o que já remove o acesso.
-                campaignRef.delete().then(() => {
-                    // O listener em loadInitialData vai detectar a deleção e redirecionar.
-                }).catch(err => {
+            if (confirmed) {
+                campaignRef.delete().catch(err => {
                     showNotification(`Erro ao encerrar sessão: ${err.message}`, 'error');
                 });
-            } 
+            }
         });
 
         ui.masterLogoutBtn.addEventListener('click', () => auth.signOut());
@@ -511,18 +891,18 @@ document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.close-modal').forEach(btn => btn.addEventListener('click', (e) => closeModal(e.target.closest('.master-modal').id)));
         ui.addItemBtn.addEventListener('click', () => openModal('itemModal'));
         ui.addEnemyBtn.addEventListener('click', () => openModal('enemyModal'));
+        ui.addNpcBtn.addEventListener('click', () => openModal('npcModal')); // NOVO
+
         ui.itemForm.addEventListener('submit', handleFormSubmit);
         ui.enemyForm.addEventListener('submit', handleFormSubmit);
+        ui.npcForm.addEventListener('submit', handleFormSubmit); // NOVO
+        ui.generateRandomNpcStatsBtn.addEventListener('click', generateRandomNpcStats); // NOVO
+
         document.getElementById('itemType').addEventListener('change', (e) => updateItemSpecificFields(e.target.value));
 
         document.getElementById('playerActionUpdateHealthBtn').addEventListener('click', handleUpdatePlayerHealth);
         document.getElementById('playerActionSendItemBtn').addEventListener('click', handleSendItemToPlayer);
         ui.playerActionKickBtn.addEventListener('click', handleKickPlayer);
-
-        ui.addNpcBtn.addEventListener('click', () => {
-            const name = prompt('Nome do NPC:');
-            if (name) playersRef.add({ name, type: 'npc', health: 10, maxHealth: 10, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-        });
 
         ui.masterItemList.addEventListener('click', e => {
             const target = e.target;
@@ -547,13 +927,53 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (enemyData) openModal('enemyModal', enemyData);
             }
         });
+        
+        // NOVO: Listener para rolagem de dados do NPC
+        ui.npcList.addEventListener('click', (e) => {
+            const target = e.target.closest('.npc-dice-roll-btn');
+            if(target) {
+                const npcName = target.dataset.npcName;
+                const diceRoll = prompt(`Rolar dado para ${npcName} (Ex: 1d20, 2d6+3):`, "1d20");
+                if(diceRoll) {
+                    try {
+                        const [numDice, rest] = diceRoll.toLowerCase().split('d');
+                        const [sides, modifierStr] = rest.split(/([+-])/);
+                        const modifierSign = modifierStr;
+                        const modifierValue = parseInt(rest.split(modifierSign)[1] || '0');
+
+                        let total = 0;
+                        let rolls = [];
+                        for(let i = 0; i < parseInt(numDice); i++) {
+                            const roll = Math.floor(Math.random() * parseInt(sides)) + 1;
+                            rolls.push(roll);
+                            total += roll;
+                        }
+                        
+                        let modifierText = "";
+                        if(modifierSign && modifierValue) {
+                            if(modifierSign === '+') total += modifierValue;
+                            if(modifierSign === '-') total -= modifierValue;
+                            modifierText = ` ${modifierSign} ${modifierValue}`;
+                        }
+                        
+                        const rollText = `(${npcName}) rolou ${diceRoll}: [${rolls.join(', ')}]${modifierText} = ${total}`;
+                        eventsRef.add({ type: 'dice_roll', senderId: 'npc_roll', senderName: npcName, text: rollText, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+
+                    } catch(err) {
+                        showNotification('Formato de dado inválido. Use "XdY" ou "XdY+Z".', 'error');
+                    }
+                }
+            }
+        });
 
         ui.mapList.addEventListener('click', e => {
             const target = e.target;
             if (target.classList.contains('delete-btn')) {
                 handleDelete('maps', target.dataset.id, 'Mapa');
             } else if (target.classList.contains('map-name')) {
-                campaignRef.update({ activeMapId: target.dataset.id });
+                campaignRef.update({
+                    activeMapId: target.dataset.id
+                });
             }
         });
 
@@ -561,15 +981,23 @@ document.addEventListener('DOMContentLoaded', function () {
             const name = ui.mapNameInput.value.trim();
             const url = ui.mapUrlInput.value.trim();
             if (name && url) {
-                mapsRef.add({ name, url }).then(() => {
+                mapsRef.add({
+                    name,
+                    url
+                }).then(() => {
                     showNotification('Mapa adicionado!', 'success');
-                    ui.mapNameInput.value = ''; ui.mapUrlInput.value = '';
+                    ui.mapNameInput.value = '';
+                    ui.mapUrlInput.value = '';
                 }).catch(err => showNotification(`Erro: ${err.message}`, 'error'));
             } else {
                 showNotification('Preencha o nome e a URL do mapa.', 'error');
             }
         });
-        ui.clearMapBtn.addEventListener('click', async () => { if (await showConfirmation('Limpar Mapa', 'Isso removerá todas as áreas reveladas. Certeza?')) { mapStateRef.set({ revealed: [] }); } });
+
+        ui.toggleFogOfWar.addEventListener('change', (e) => {
+            const isActive = e.target.checked;
+            mapStateRef.set({ fogIsActive: isActive }, { merge: true });
+        });
 
         ui.diceBtns.forEach(btn => btn.addEventListener('click', (e) => {
             const diceAudio = document.getElementById('master-dice-audio');
@@ -577,10 +1005,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 diceAudio.currentTime = 0;
                 diceAudio.play().catch(err => console.error("Erro ao tocar áudio:", err));
             }
-            
+
             const sides = parseInt(e.target.dataset.sides);
             const quantity = parseInt(ui.diceQuantityInput.value) || 1;
-            
+
             let rolls = [];
             let total = 0;
             for (let i = 0; i < quantity; i++) {
@@ -596,18 +1024,43 @@ document.addEventListener('DOMContentLoaded', function () {
                 rollText = `(Mestre) rolou ${quantity}d${sides}: [${rolls.join(', ')}] = ${total}`;
             }
 
-            eventsRef.add({ type: 'dice_roll', senderId: appState.currentUser.uid, senderName: appState.masterInfo.name || 'Mestre', text: rollText, timestamp: firebase.firestore.FieldValue.serverTimestamp() })
-                .then(() => showNotification('Rolagem enviada para o chat!', 'info'));
+            eventsRef.add({
+                type: 'dice_roll',
+                senderId: appState.currentUser.uid,
+                senderName: appState.masterInfo.name || 'Mestre',
+                text: rollText,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            })
         }));
 
         const sendChatMessage = () => {
             const text = ui.masterChatInput.value.trim();
             if (!text) return;
-            eventsRef.add({ type: 'chat', senderId: appState.currentUser.uid, senderName: appState.masterInfo.name || 'Mestre', text: text, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            eventsRef.add({
+                type: 'chat',
+                senderId: appState.currentUser.uid,
+                senderName: appState.masterInfo.name || 'Mestre',
+                text: text,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
             ui.masterChatInput.value = '';
         };
         ui.sendMasterMsgBtn.addEventListener('click', sendChatMessage);
-        ui.masterChatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
+        ui.masterChatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendChatMessage();
+        });
+        
+        // LISTENERS DA INICIATIVA
+        ui.getInitiativeFromAllBtn.addEventListener('click', handleGetInitiative);
+        ui.nextInitiativeBtn.addEventListener('click', handleNextInitiative);
+        ui.clearInitiativeBtn.addEventListener('click', handleClearInitiative);
+        ui.initiativeList.addEventListener('click', (e) => {
+            const target = e.target.closest('.remove-from-initiative-btn');
+            if (target) {
+                initiativeRef.doc(target.dataset.id).delete();
+            }
+        });
+
 
         if (ui.toggleChatBtn) {
             ui.toggleChatBtn.addEventListener('click', () => {
@@ -617,6 +1070,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 icon.classList.toggle('fa-chevron-down');
             });
         }
+
+        // NOVO: Listener para ações de itens no modal
+        ui.playerActionModal.addEventListener('click', (e) => {
+            const useBtn = e.target.closest('.use-item-btn');
+            const transferBtn = e.target.closest('.transfer-item-btn');
+
+            if (useBtn) {
+                const charId = useBtn.dataset.characterId;
+                const itemIndex = parseInt(useBtn.dataset.itemIndex);
+                handleUseItem(charId, itemIndex);
+            }
+
+            if (transferBtn) {
+                const charId = transferBtn.dataset.characterId;
+                const itemIndex = parseInt(transferBtn.dataset.itemIndex);
+                handleTransferItem(charId, itemIndex);
+            }
+        });
     };
 
     // --- INICIALIZAÇÃO DA APLICAÇÃO ---

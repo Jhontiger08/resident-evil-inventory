@@ -5,947 +5,1106 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resident Evil RPG - Ficha de Personagem</title>
-    <link rel="icon" href="imgs/icon.png" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
-
+    
     <style>
-        /* Estilos Anteriores */
-        .map-container {
-            position: relative;
-            background-color: #000;
+        :root {
+            --primary-color: #c0a050;
+            --background-color: #0a0a0a;
+            --container-bg: rgba(0, 0, 0, 0.7);
+            --box-bg: rgba(26, 26, 26, 0.8);
+            --border-color: #444;
+            --text-color: #e0e0e0;
+            --header-font: 'IM Fell English SC', serif;
+            --danger-color: #c05050;
+        }
+
+        body {
+            font-family: var(--header-font), serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            background-image: url('https://www.transparenttextures.com/patterns/asfalt-dark.png');
+            margin: 0;
+        }
+        
+        .page-wrapper {
             display: flex;
-            justify-content: center;
-            align-items: center;
+            height: 100vh;
+            width: 100%;
             overflow: hidden;
         }
 
-        #map-image {
-            max-width: 100%;
-            max-height: 80vh;
+        .main-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
         }
 
-        #player-fog-of-war {
-            position: absolute;
-            top: 0;
-            left: 0;
-            pointer-events: none;
-        }
-
-        #notification-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 2000;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .notification {
-            padding: 1rem 1.5rem;
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--container-bg);
+            padding: 20px;
+            border: 1px solid var(--border-color);
             border-radius: 4px;
-            color: #fff;
-            font-family: sans-serif;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-            animation: slideInNotification 0.3s ease-out;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
         }
 
-        .notification.info {
-            background-color: #0277BD;
+        .header-title h1 {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            text-shadow: 2px 2px 4px #000;
+            margin: 0;
+            text-align: center;
         }
-
-        .notification.success {
-            background-color: #2E7D32;
-        }
-
-        .notification.error {
-            background-color: #C62828;
-        }
-
-        @keyframes slideInNotification {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        .dice-modal-content .dice-options {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-            align-items: center;
-        }
-
-        .dice-option {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            width: 100%;
-            justify-content: center;
-        }
-
-        .dice-option label {
-            color: #c0a050;
-            font-size: 1.1rem;
-        }
-
-        .dice-option input,
-        .dice-option select {
-            background-color: #1a1a1a;
-            border: 1px solid #444;
-            color: #e0e0e0;
-            padding: 0.5rem;
-            border-radius: 4px;
-            font-family: 'IM Fell English SC', serif;
-            font-size: 1rem;
+        .header-title p {
+            margin: 5px 0 20px;
+            color: #aaa;
             text-align: center;
         }
 
-        .dice-option input {
-            width: 70px;
+        .inventory-header {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 20px;
         }
 
-        .dice-option select {
+        .inventory-body {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            grid-template-rows: auto;
+            gap: 20px;
+        }
+
+        .left-column, .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .character-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+            background: var(--box-bg);
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .character-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 2px solid var(--primary-color);
+            background-color: #111;
+            background-size: cover;
+            background-position: center;
+            cursor: pointer;
+            position: relative;
+            flex-shrink: 0;
+        }
+         .character-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .character-meta {
             flex-grow: 1;
-            max-width: 200px;
-            text-align: left;
         }
 
-        /* --- ESTILOS ATUALIZADOS --- */
-
-        /* Layout principal para Desktop */
-        @media (min-width: 1024px) {
-            body {
-                display: flex;
-            }
-
-            .container {
-                flex-grow: 1;
-                margin-right: 370px;
-            }
-
-            #player-chat-container {
-                position: fixed;
-                right: 20px;
-                top: 20px;
-                bottom: 20px;
-                height: calc(100vh - 40px);
-                width: 350px;
-                max-height: 95vh;
-                border-radius: 4px;
-                margin-bottom: 0;
-            }
-
-            #player-chat-container.collapsed {
-                height: 42px;
-                bottom: auto;
-            }
+        .character-name input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px dashed var(--border-color);
+            color: var(--text-color);
+            font-size: 1.5rem;
+            font-family: var(--header-font);
+            padding-bottom: 5px;
+            width: 100%;
+        }
+         .character-name input:focus {
+            outline: none;
+            border-bottom: 1px solid var(--primary-color);
         }
 
-        /* Design dos atributos */
-        .attributes-grid {
+        .equipped-weapon {
+            color: var(--primary-color);
+            margin-top: 10px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .re-btn {
+            background-color: #333;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: var(--header-font);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .re-btn:hover { background-color: var(--primary-color); color: #000; border-color: var(--primary-color); }
+        .re-btn-secondary { background-color: #5a2828; }
+        .re-btn-secondary:hover { background-color: #8d3a3a; }
+        
+        .service-box, .attributes-box, .slots-box, .item-display-box {
+            background: var(--box-bg);
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .item-display-box {
+            display: flex;
+            gap: 20px;
+        }
+        .selected-item-panel, .description-panel {
+            flex: 1;
+        }
+
+        h3, h4 {
+            font-family: var(--header-font);
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+
+        .health-controls { display: flex; align-items: center; gap: 10px; }
+        .health-btn { background-color: #444; border: 1px solid var(--border-color); color: white; font-weight: bold; width: 30px; height: 30px; cursor: pointer; }
+        .health-bar-container { flex-grow: 1; height: 20px; background-color: #111; border: 1px solid var(--border-color); padding: 2px; }
+        .health-bar-fill { height: 100%; transition: width 0.3s ease, background-color 0.3s ease; }
+        .item-description, #selected-item-display { min-height: 50px; }
+        
+        .inventory-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .inventory-slot {
+            aspect-ratio: 1 / 1;
+            background-color: #111;
+            border: 2px dashed var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        .inventory-slot.equipped { border-color: var(--primary-color); box-shadow: 0 0 10px var(--primary-color); }
+        .inventory-slot.item-selected { border-style: solid; border-color: var(--danger-color); }
+        .inventory-slot span { font-size: 2rem; color: #444; }
+        .dragging { opacity: 0.4; transform: scale(1.05); }
+        .drag-over { border-style: solid; border-color: #2E7D32; }
+        
+        .attributes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
             gap: 1.5rem;
             margin-bottom: 1.5rem;
         }
-
-        .attribute {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .attribute label {
-            color: #e0e0e0;
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: baseline;
-            gap: 8px;
-            /* Espaço entre o nome e o modificador */
-        }
-
-        .attribute-modifier {
-            color: #c0a050;
-            font-weight: bold;
-        }
-
-        .attribute input {
-            width: 100%;
-            box-sizing: border-box;
-            text-align: center;
-            background: #1a1a1a;
-            border: 1px solid #444;
-            color: #fff;
-            padding: 0.4rem;
-            font-size: 1.1rem;
-        }
-
-        /* --- ESTILOS DO CHAT CORRIGIDOS --- */
+        
+        .attribute label { color: var(--text-color); font-size: 1.1rem; margin-bottom: 0.5rem; display: flex; align-items: baseline; gap: 8px; }
+        .attribute-modifier { color: var(--primary-color); font-weight: bold; }
+        .attribute input { width: 100%; box-sizing: border-box; text-align: center; background: #1a1a1a; border: 1px solid #444; color: #fff; padding: 0.4rem; font-size: 1.1rem; }
+        
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat { display: flex; justify-content: space-between; }
+        
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 0.8rem; }
+        
         #player-chat-container {
+            width: 380px;
+            height: 100vh;
+            background-color: #181818;
+            border-left: 1px solid var(--primary-color);
             display: flex;
             flex-direction: column;
-        }
-
-        .chat-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             flex-shrink: 0;
-            /* Impede que o header encolha */
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        .chat-header { padding: 0.8rem 1rem; background-color: rgba(30, 30, 30, 0.95); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        #toggle-chat-btn { display: none; }
+        .chat-messages { flex-grow: 1; overflow-y: auto; padding: 0.8rem; display: flex; flex-direction: column-reverse; gap: 0.8rem; }
+        .chat-message { max-width: 90%; }
+        .chat-message.own-message { align-self: flex-end; }
+        .sender-info { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+        .sender-info .sender { color: #88aadd; font-weight: bold; font-size: 0.9rem; }
+        .chat-message.own-message .sender-info .sender { color: var(--primary-color); }
+        .sender-info .time { color: rgba(255, 255, 255, 0.5); font-size: 0.7rem; }
+        .chat-message .text { word-wrap: break-word; font-size: 0.9rem; color: var(--text-primary); background-color: rgba(45, 45, 45, 0.9); padding: 0.5rem 0.8rem; border-radius: 8px; }
+        .dice-roll-text { font-style: italic; color: var(--primary-color); }
+        .chat-input { display: flex; padding: 0.5rem; border-top: 1px solid var(--border-color); }
+        .chat-input input { flex: 1; padding: 0.6rem; background-color: rgba(51, 51, 51, 0.8); border: 1px solid rgba(85, 85, 85, 0.5); color: white; border-radius: 4px; margin-right: 0.5rem; }
+        
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0, 0, 0, 0.8); animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-content { background-color: var(--box-bg); margin: 10% auto; padding: 20px; border: 1px solid var(--border-color); width: 90%; max-width: 600px; position: relative; border-radius: 4px; display: flex; flex-direction: column; }
+        .close-btn { color: #aaa; position: absolute; top: 10px; right: 15px; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close-btn:hover, .close-btn:focus { color: var(--primary-color); }
+        
+        /* NOVO: Modal de Documentos Reestruturado */
+        .modal-content.docs-content { max-width: 800px; }
+        .docs-container { display: flex; gap: 20px; width: 100%; min-height: 400px; }
+        .notes-panel { flex: 2; display: flex; flex-direction: column; }
+        .read-docs-panel { flex: 1; border-left: 1px solid var(--border-color); padding-left: 20px; }
+        .notes-panel textarea { flex-grow: 1; height: auto; }
+        .docs-content textarea { width: 100%; background-color: #111; border: 1px solid var(--border-color); color: var(--text-color); padding: 10px; font-family: 'Courier New', Courier, monospace; font-size: 1rem; resize: vertical; box-sizing: border-box; }
+        .docs-controls { margin-top: 15px; text-align: right; }
+        #read-docs-list { list-style: none; padding: 0; margin: 0; max-height: 380px; overflow-y: auto; }
+        #read-docs-list li { padding: 10px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background-color 0.2s; }
+        #read-docs-list li:hover { background-color: rgba(192, 160, 80, 0.1); }
+        #read-docs-list li:last-child { border-bottom: none; }
+        
+        /* Restante dos estilos do modal */
+        .dice-modal-content .dice-options { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem; align-items: center; }
+        .dice-option { display: flex; gap: 10px; align-items: center; width: 100%; justify-content: center; }
+        .dice-option label { color: var(--primary-color); font-size: 1.1rem; }
+        .dice-option input, .dice-option select { background-color: #1a1a1a; border: 1px solid #444; color: #e0e0e0; padding: 0.5rem; border-radius: 4px; font-size: 1rem; text-align: center; }
+        .dice-buttons { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+        .dice-result { margin-top: 20px; text-align: center; font-size: 1.5rem; color: var(--primary-color); }
+        .map-container { position: relative; background-color: #000; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        #map-image { max-width: 100%; max-height: 80vh; }
+        #notification-container { position: fixed; top: 20px; right: 20px; z-index: 3000; display: flex; flex-direction: column; gap: 10px; }
+        .notification { padding: 1rem 1.5rem; border-radius: 4px; color: #fff; font-family: sans-serif; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5); animation: slideInNotification 0.3s ease-out; }
+        .notification.info { background-color: #0277BD; }
+        .notification.success { background-color: #2E7D32; }
+        .notification.error { background-color: #C62828; }
+        @keyframes slideInNotification { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* RESPONSIVIDADE */
+        @media (max-width: 1024px) {
+            .page-wrapper { flex-direction: column; }
+            .inventory-body { grid-template-columns: 1fr; } 
+            #player-chat-container {
+                position: fixed;
+                width: 100%;
+                height: 50vh;
+                max-height: 400px;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                border-left: none;
+                border-top: 1px solid var(--primary-color);
+            }
+            #player-chat-container.collapsed { height: 48px; }
+            #toggle-chat-btn { display: block; }
+            .main-content { padding-bottom: 60px; }
         }
 
-        .chat-messages {
-            flex-grow: 1;
-            /* Faz a área de mensagens crescer */
-            overflow-y: auto;
-            /* Adiciona scroll apenas quando necessário */
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .chat-message {
-            display: flex;
-            flex-direction: column;
-            margin-bottom: 1rem;
-            max-width: 90%;
-            align-self: flex-start;
-            /* Padrão: alinhado à esquerda */
-        }
-
-        .message-sender {
-            font-size: 0.8rem;
-            color: #aaa;
-            margin-bottom: 4px;
-            text-shadow: 1px 1px 2px #000;
-        }
-
-        .message-text {
-            padding: 0.75rem;
-            border-radius: 8px;
-            word-wrap: break-word;
-            line-height: 1.4;
-            background-color: rgba(60, 60, 60, 0.8);
-            border: 1px solid rgba(80, 80, 80, 0.5);
-        }
-
-        .chat-message.own-message {
-            align-self: flex-end;
-            /* Mensagens próprias alinhadas à direita */
-            align-items: flex-end;
-            /* Conteúdo interno (nome) alinhado à direita */
-        }
-
-        .chat-message.own-message .message-text {
-            background-color: rgba(80, 70, 45, 0.9);
-            border: 1px solid rgba(192, 160, 80, 0.3);
-        }
-
-        .message-sender.master {
-            color: #d4b468;
-            font-weight: bold;
-        }
-
-        .chat-input {
-            flex-shrink: 0;
-            /* Impede que o input encolha */
-            padding-top: 10px;
-            border-top: 1px solid rgba(192, 160, 80, 0.2);
-        }
-
-        /* Barra de Scroll Customizada */
-        .chat-messages::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .chat-messages::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.2);
-        }
-
-        .chat-messages::-webkit-scrollbar-thumb {
-            background-color: #c0a050;
-            border-radius: 4px;
-            border: 2px solid transparent;
-            background-clip: content-box;
-        }
-
-        .chat-messages::-webkit-scrollbar-thumb:hover {
-            background-color: #d4b468;
+        @media (max-width: 768px) {
+            .character-info { flex-direction: column; }
+            .action-buttons { justify-content: center; }
+            .attributes-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.8rem;
+            }
+            .attribute label { font-size: 1rem; }
+            .attribute input { font-size: 1rem; padding: 0.2rem; }
+            .header-title h1 {
+                font-size: 2rem;
+                line-height: 1.1;
+            }
+            .item-display-box {
+                flex-direction: column;
+            }
+            .docs-container {
+                flex-direction: column;
+            }
+            .read-docs-panel {
+                border-left: none;
+                border-top: 1px solid var(--border-color);
+                padding-left: 0;
+                padding-top: 20px;
+            }
         }
     </style>
-
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
 </head>
 
 <body>
-    <div id="notification-container"></div>
-
-    <div class="container">
-        <div class="header-title">
-            <h1>INVENTÁRIO RESIDENT EVIL</h1>
-            <p id="campaign-name-display">Carregando...</p>
-        </div>
-
-        <header class="inventory-header">
-            <div class="character-info">
-                <div id="character-image" class="character-image"></div>
-                <input type="file" id="image-upload" accept="image/*" style="display: none;">
-
-                <div class="character-meta">
-                    <div class="character-name">
-                        <input type="text" id="char-name" placeholder="Nome do Personagem">
-                    </div>
-                    <div class="equipped-weapon" id="equipped-weapon">
-                        <span>Arma: Nenhuma</span>
-                    </div>
+    <div class="page-wrapper">
+        <main class="main-content">
+            <div class="container">
+                <div class="header-title">
+                    <h1>INVENTÁRIO RESIDENT EVIL</h1>
+                    <p id="campaign-name-display">Carregando...</p>
                 </div>
 
-                <div class="action-buttons">
-                    <button id="docs-btn" class="re-btn">📜<span>Documentos</span></button>
-                    <button id="map-btn" class="re-btn">🗺️<span>Mapa</span></button>
-                    <button id="dice-btn" class="re-btn">🎲<span>Dados</span></button>
-                    <button id="audio-toggle" class="re-btn">
-                        <span id="audio-icon">🔇</span>
-                    </button>
+                <header class="inventory-header">
+                    <div class="character-info">
+                        <div id="character-image" class="character-image">
+                            <img id="char-img-element" src="https://placehold.co/80x80/111111/444444?text=?" alt="Personagem">
+                        </div>
+                        <input type="file" id="image-upload" accept="image/*" style="display: none;">
+
+                        <div class="character-meta">
+                            <div class="character-name">
+                                <input type="text" id="char-name" placeholder="Nome do Personagem">
+                            </div>
+                            <div class="equipped-weapon" id="equipped-weapon">
+                                <span>Arma: Nenhuma</span>
+                            </div>
+                        </div>
+
+                        <div class="action-buttons">
+                            <button id="docs-btn" class="re-btn">📜<span>Documentos</span></button>
+                            <button id="map-btn" class="re-btn">🗺️<span>Mapa</span></button>
+                            <button id="dice-btn" class="re-btn">🎲<span>Dados</span></button>
+                            <button id="audio-toggle" class="re-btn">
+                                <span id="audio-icon">🔇</span>
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="inventory-body">
+                    <div class="left-column">
+                        <div class="service-box">
+                            <h3>Vida do Personagem</h3>
+                            <div class="health-controls">
+                                <button class="health-btn" id="decrease-health-btn">-</button>
+                                <div class="health-bar-container">
+                                    <div id="health-bar-fill" class="health-bar-fill"></div>
+                                </div>
+                                <button class="health-btn" id="increase-health-btn">+</button>
+                            </div>
+                            <div id="health-value" style="text-align: center; margin-top: 0.5rem; margin-bottom: 1rem;">100/100</div>
+                            <progress id="health" value="100" max="100" style="display: none;"></progress>
+                        </div>
+                        <div class="attributes-box">
+                            <h3>Atributos</h3>
+                            <div class="attributes-grid" id="attributes-grid"></div>
+                            <h4>Status Calculados</h4>
+                            <div class="stats-grid">
+                                <div class="stat"><label>Vida Total:</label><span id="life-total">20</span></div>
+                                <div class="stat"><label>Sanidade:</label><span id="sanity-total">100</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="right-column">
+                        <div class="item-display-box">
+                           <div class="selected-item-panel">
+                                <h3>Item Selecionado</h3>
+                                <div id="selected-item-display">Nenhum</div>
+                           </div>
+                           <div class="description-panel">
+                                <h3>Descrição do Item</h3>
+                                <div id="item-description">
+                                    Clique em um item para ver a descrição.
+                                </div>
+                           </div>
+                        </div>
+                        <div class="slots-box">
+                           <h3>Inventário</h3>
+                           <div class="inventory-grid" id="inventory-grid"></div>
+                        </div>
+                    </div>
                 </div>
+                
+                <footer class="footer">
+                    <p>Sistema desenvolvido por João Piel Neto</p>
+                    <button id="backToCampaigns" class="re-btn">Voltar para Campanhas</button>
+                </footer>
             </div>
-        </header>
+        </main>
 
-        <div class="inventory-body">
-            <div class="left-panel">
-                <div class="service-box">
-                    <h3>Vida do Personagem</h3>
-                    <div class="health-controls">
-                        <button class="health-btn" id="decrease-health-btn">-</button>
-                        <div class="health-bar-container">
-                            <div id="health-bar-fill" class="health-bar-fill"></div>
-                        </div>
-                        <button class="health-btn" id="increase-health-btn">+</button>
-                    </div>
-                    <div id="health-value" style="text-align: center; margin-top: 0.5rem; margin-bottom: 1rem;">100/100
-                    </div>
-                    <progress id="health" value="100" max="100" style="display: none;"></progress>
-                </div>
-                <div class="service-box">
-                    <h3>Item Selecionado</h3>
-                    <div id="selected-item-display" class="selected-item-display">Nenhum</div>
-                </div>
-                <div class="source-box">
-                    <h3>Descrição do Item</h3>
-                    <div class="item-description" id="item-description">
-                        Clique em um item para ver a descrição.
-                    </div>
-                </div>
+        <!-- CHAT LATERAL -->
+        <aside id="player-chat-container">
+            <div class="chat-header" id="chat-header">
+                <h3>Chat da Campanha</h3>
+                <button id="toggle-chat-btn" title="Minimizar/Maximizar"><i class="fas fa-chevron-up"></i></button>
             </div>
-
-            <div class="right-panel">
-                <div class="attributes-box">
-                    <h3>Atributos</h3>
-                    <div class="attributes-grid">
-                        <div class="attribute">
-                            <label for="strength">Força: <span class="attribute-modifier"
-                                    id="strength-mod"></span></label>
-                            <input type="number" id="strength" value="10" min="1" max="20">
-                        </div>
-                        <div class="attribute">
-                            <label for="dexterity">Destreza: <span class="attribute-modifier"
-                                    id="dexterity-mod"></span></label>
-                            <input type="number" id="dexterity" value="10" min="1" max="20">
-                        </div>
-                        <div class="attribute">
-                            <label for="constitution">Constituição: <span class="attribute-modifier"
-                                    id="constitution-mod"></span></label>
-                            <input type="number" id="constitution" value="10" min="1" max="20">
-                        </div>
-                        <div class="attribute">
-                            <label for="intelligence">Inteligência: <span class="attribute-modifier"
-                                    id="intelligence-mod"></span></label>
-                            <input type="number" id="intelligence" value="10" min="1" max="20">
-                        </div>
-                        <div class="attribute">
-                            <label for="perception">Percepção: <span class="attribute-modifier"
-                                    id="perception-mod"></span></label>
-                            <input type="number" id="perception" value="10" min="1" max="20">
-                        </div>
-                    </div>
-                    <h4>Status Calculados</h4>
-                    <div class="stats-grid">
-                        <div class="stat"><label>Vida Total:</label><span id="life-total">20</span></div>
-                        <div class="stat"><label>Sanidade:</label><span id="sanity-total">100</span></div>
-                    </div>
-                </div>
+            <div class="chat-messages" id="chat-messages"></div>
+            <div class="chat-input">
+                <input type="text" id="chat-input-field" placeholder="Digite sua mensagem...">
+                <button id="send-chat-btn" class="re-btn">Enviar</button>
             </div>
-            <div class="inventory-grid" id="inventory-grid"></div>
-        </div>
-    </div>
-    <footer class="footer">
-        <p>Sistema desenvolvido por João Piel Neto</p>
-        <button id="backToCampaigns" class="re-btn">Voltar para Campanhas</button>
-    </footer>
+        </aside>
     </div>
 
-    <div id="player-chat-container" class="player-chat-container">
-        <div class="chat-header">
-            <h3>Chat da Campanha</h3>
-            <button id="toggle-chat-btn" title="Minimizar/Maximizar"><i class="fas fa-window-minimize"></i></button>
-        </div>
-        <div id="chat-messages" class="chat-messages"></div>
-        <div class="chat-input">
-            <input type="text" id="chat-input-field" placeholder="Digite sua mensagem...">
-            <button id="send-chat-btn" class="re-btn">Enviar</button>
-        </div>
-    </div>
-
-
-    <audio id="dice-audio" src="sounds/dice1.mp3"></audio>
-    <audio id="background-audio" src="sounds/background.mp3" loop></audio>
-
-    <div id="map-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <div class="map-controls">
-                <h3 id="map-title">Mapa</h3>
-            </div>
-            <div class="map-container">
-                <img id="map-image" src="" alt="Mapa da campanha">
-                <canvas id="player-fog-of-war"></canvas>
-            </div>
-        </div>
-    </div>
-
+    <!-- MODAIS -->
+    <div id="map-modal" class="modal"><div class="modal-content"><span class="close-btn">&times;</span><div class="map-controls"><h3 id="map-title">Mapa</h3></div><div class="map-container"><img id="map-image" src="" alt="Mapa da campanha"></div></div></div>
+    
     <div id="docs-modal" class="modal">
         <div class="modal-content docs-content">
             <span class="close-btn">&times;</span>
-            <h3>Documentos e Anotações</h3>
-            <textarea id="notes-textarea"></textarea>
-            <div class="docs-controls">
-                <button id="save-notes" class="re-btn">Salvar Notas</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="dice-modal" class="modal">
-        <div class="modal-content dice-modal-content">
-            <span class="close-btn">&times;</span>
-            <h3>Rolagem de Dados</h3>
-            <div class="dice-options">
-                <div class="dice-option">
-                    <label for="diceQuantity">Qtd:</label>
-                    <input type="number" id="diceQuantity" value="1" min="1" max="100">
+            <div class="docs-container">
+                <div class="notes-panel">
+                    <h3>Anotações</h3>
+                    <textarea id="notes-textarea" placeholder="Suas anotações privadas..."></textarea>
+                    <div class="docs-controls">
+                        <button id="save-notes" class="re-btn">Salvar Anotações</button>
+                    </div>
                 </div>
-                <div class="dice-option">
-                    <label for="attributeBonus">Bônus:</label>
-                    <select id="attributeBonus">
-                        <option value="none">Nenhum</option>
-                        <option value="strength">Força</option>
-                        <option value="dexterity">Destreza</option>
-                        <option value="constitution">Constituição</option>
-                        <option value="intelligence">Inteligência</option>
-                        <option value="perception">Percepção</option>
-                    </select>
+                <div class="read-docs-panel">
+                    <h3>Documentos Lidos</h3>
+                    <ul id="read-docs-list">
+                        <!-- Documentos lidos serão inseridos aqui -->
+                    </ul>
                 </div>
             </div>
-            <div class="dice-buttons">
-                <button class="dice-btn re-btn" data-sides="20">d20</button>
-                <button class="dice-btn re-btn" data-sides="12">d12</button>
-                <button class="dice-btn re-btn" data-sides="10">d10</button>
-                <button class="dice-btn re-btn" data-sides="8">d8</button>
-                <button class="dice-btn re-btn" data-sides="6">d6</button>
-                <button class="dice-btn re-btn" data-sides="4">d4</button>
-            </div>
-            <div id="dice-result" class="dice-result"></div>
         </div>
     </div>
 
-    <div id="read-document-modal" class="modal">
-        <div class="modal-content docs-content">
-            <span class="close-btn">&times;</span>
-            <h3 id="document-title"></h3>
-            <div id="document-content" class="item-description"></div>
-        </div>
-    </div>
+    <div id="dice-modal" class="modal"><div class="modal-content dice-modal-content"><span class="close-btn">&times;</span><h3>Rolagem de Dados</h3><div class="dice-options"></div><div class="dice-buttons"></div><div id="dice-result" class="dice-result"></div></div></div>
+    <div id="read-document-modal" class="modal"><div class="modal-content docs-content"><span class="close-btn">&times;</span><h3 id="document-title"></h3><div id="document-content" class="item-description"></div></div></div>
+    <div id="confirm-action-modal" class="modal"><div class="modal-content" style="max-width: 400px; text-align: center;"><h3 id="confirm-action-title">Confirmar Ação</h3><p id="confirm-action-text" style="margin: 20px 0;"></p><div class="action-buttons" style="justify-content: center;"><button id="confirm-action-yes" class="re-btn">Sim</button><button id="confirm-action-no" class="re-btn re-btn-secondary">Não</button></div></div></div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // --- CONFIGURAÇÃO FIREBASE ---
-            const firebaseConfig = {
-                apiKey: "AIzaSyAKUKEyV3iS8QCQpdjtHhDdbiySy2e9RZY",
-                authDomain: "rpgterror-90630.firebaseapp.com",
-                projectId: "rpgterror-90630",
-                storageBucket: "rpgterror-90630.appspot.com",
-                messagingSenderId: "569459851763",
-                appId: "1:569459851763:web:302afb88d253d14ab25286"
-            };
-            firebase.initializeApp(firebaseConfig);
-            const auth = firebase.auth();
-            const db = firebase.firestore();
+    <div id="notification-container"></div>
 
-            // --- REFERÊNCIAS DO DOM ---
-            const elements = {
-                notificationContainer: document.getElementById('notification-container'),
-                campaignNameDisplay: document.getElementById('campaign-name-display'),
-                characterImage: document.getElementById('character-image'),
-                imageUpload: document.getElementById('image-upload'),
-                charNameInput: document.getElementById('char-name'),
-                equippedWeapon: document.getElementById('equipped-weapon'),
-                healthBar: document.getElementById('health'),
-                healthValue: document.getElementById('health-value'),
-                increaseHealthBtn: document.getElementById('increase-health-btn'),
-                decreaseHealthBtn: document.getElementById('decrease-health-btn'),
-                selectedItemDisplay: document.getElementById('selected-item-display'),
-                itemDescription: document.getElementById('item-description'),
-                inventoryGrid: document.getElementById('inventory-grid'),
-                attributes: {
-                    strength: document.getElementById('strength'),
-                    dexterity: document.getElementById('dexterity'),
-                    constitution: document.getElementById('constitution'),
-                    intelligence: document.getElementById('intelligence'),
-                    perception: document.getElementById('perception'),
-                },
-                modifiers: {
-                    strength: document.getElementById('strength-mod'),
-                    dexterity: document.getElementById('dexterity-mod'),
-                    constitution: document.getElementById('constitution-mod'),
-                    intelligence: document.getElementById('intelligence-mod'),
-                    perception: document.getElementById('perception-mod'),
-                },
-                lifeTotalSpan: document.getElementById('life-total'),
-                sanityTotalSpan: document.getElementById('sanity-total'),
-                notesTextarea: document.getElementById('notes-textarea'),
-                docsBtn: document.getElementById('docs-btn'),
-                mapBtn: document.getElementById('map-btn'),
-                diceBtn: document.getElementById('dice-btn'),
-                audioToggle: document.getElementById('audio-toggle'),
-                audioIcon: document.getElementById('audio-icon'),
-                backgroundAudio: document.getElementById('background-audio'),
-                docsModal: document.getElementById('docs-modal'),
-                mapModal: document.getElementById('map-modal'),
-                diceModal: document.getElementById('dice-modal'),
-                readDocumentModal: document.getElementById('read-document-modal'),
-                mapTitle: document.getElementById('map-title'),
-                mapImage: document.getElementById('map-image'),
-                saveNotesBtn: document.getElementById('save-notes'),
-                diceResultDiv: document.getElementById('dice-result'),
-                backToCampaignsBtn: document.getElementById('backToCampaigns'),
-                chatContainer: document.getElementById('player-chat-container'),
-                chatHeader: document.querySelector('.chat-header'),
-                chatMessages: document.getElementById('chat-messages'),
-                chatInputField: document.getElementById('chat-input-field'),
-                sendChatBtn: document.getElementById('send-chat-btn'),
-                toggleChatBtn: document.getElementById('toggle-chat-btn'),
-                playerFogOfWarCanvas: document.getElementById('player-fog-of-war'),
-            };
+    <!-- ÁUDIOS -->
+    <audio id="dice-audio" src="./sounds/dice1.mp3"></audio>
+    <audio id="background-audio" src="./sounds/background.mp3" loop></audio>
 
-            // --- ESTADO DA APLICAÇÃO ---
-            let campaignId, userId, playerDocRef, campaignDocRef;
-            let unsubscribePlayer, unsubscribeEvents, unsubscribeCampaign;
-            let localInventory = Array(8).fill(null);
-            let masterId = null;
-            let mapState = { ctx: null, revealedAreas: [] };
-            let selectedSlotIndex = -1;
-            let isInitialEventsLoad = true;
+    <!-- FIREBASE E SCRIPT PRINCIPAL -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection, query, orderBy, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-            const showNotification = (message, type = 'info', duration = 4000) => {
-                const notification = document.createElement('div');
-                notification.className = `notification ${type}`;
-                notification.textContent = message;
-                elements.notificationContainer.appendChild(notification);
-                setTimeout(() => notification.remove(), duration);
-            };
+        // --- CONFIGURAÇÃO FIREBASE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAKUKEyV3iS8QCQpdjtHhDdbiySy2e9RZY",
+            authDomain: "rpgterror-90630.firebaseapp.com",
+            projectId: "rpgterror-90630",
+            storageBucket: "rpgterror-90630.appspot.com",
+            messagingSenderId: "569459851763",
+            appId: "1:569459851763:web:302afb88d253d14ab25286"
+        };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-            const calculateModifier = (score) => {
-                const modifier = Math.floor((score - 10) / 2);
-                return modifier >= 0 ? `+${modifier}` : modifier;
-            };
+        // --- REFERÊNCIAS DO DOM ---
+        const DOMElements = {
+            notificationContainer: document.getElementById('notification-container'),
+            campaignNameDisplay: document.getElementById('campaign-name-display'),
+            characterImage: document.getElementById('character-image'),
+            charImgElement: document.getElementById('char-img-element'),
+            imageUpload: document.getElementById('image-upload'),
+            charNameInput: document.getElementById('char-name'),
+            equippedWeapon: document.getElementById('equipped-weapon'),
+            healthBar: document.getElementById('health'),
+            healthBarFill: document.getElementById('health-bar-fill'),
+            healthValue: document.getElementById('health-value'),
+            increaseHealthBtn: document.getElementById('increase-health-btn'),
+            decreaseHealthBtn: document.getElementById('decrease-health-btn'),
+            selectedItemDisplay: document.getElementById('selected-item-display'),
+            itemDescription: document.getElementById('item-description'),
+            inventoryGrid: document.getElementById('inventory-grid'),
+            attributesGrid: document.getElementById('attributes-grid'),
+            lifeTotalSpan: document.getElementById('life-total'),
+            sanityTotalSpan: document.getElementById('sanity-total'),
+            
+            // Modais
+            docsModal: document.getElementById('docs-modal'),
+            mapModal: document.getElementById('map-modal'),
+            diceModal: document.getElementById('dice-modal'),
+            readDocumentModal: document.getElementById('read-document-modal'),
+            confirmActionModal: document.getElementById('confirm-action-modal'),
+            
+            // Botões e Inputs de Modais
+            docsBtn: document.getElementById('docs-btn'),
+            mapBtn: document.getElementById('map-btn'),
+            diceBtn: document.getElementById('dice-btn'),
+            saveNotesBtn: document.getElementById('save-notes'),
+            notesTextarea: document.getElementById('notes-textarea'),
+            mapTitle: document.getElementById('map-title'),
+            mapImage: document.getElementById('map-image'),
+            diceResultDiv: document.getElementById('dice-result'),
+            confirmActionTitle: document.getElementById('confirm-action-title'),
+            confirmActionText: document.getElementById('confirm-action-text'),
+            confirmActionYes: document.getElementById('confirm-action-yes'),
+            confirmActionNo: document.getElementById('confirm-action-no'),
+            
+            // Chat
+            chatContainer: document.getElementById('player-chat-container'),
+            chatHeader: document.getElementById('chat-header'),
+            chatMessages: document.getElementById('chat-messages'),
+            chatInputField: document.getElementById('chat-input-field'),
+            sendChatBtn: document.getElementById('send-chat-btn'),
+            toggleChatBtn: document.getElementById('toggle-chat-btn'),
 
-            const updateAllModifiers = () => {
-                for (const attr in elements.attributes) {
-                    const score = parseInt(elements.attributes[attr].value);
-                    elements.modifiers[attr].textContent = calculateModifier(score);
+            // Áudio
+            audioToggle: document.getElementById('audio-toggle'),
+            audioIcon: document.getElementById('audio-icon'),
+            backgroundAudio: document.getElementById('background-audio'),
+            
+            // Footer
+            backToCampaignsBtn: document.getElementById('backToCampaigns'),
+        };
+
+        // --- ESTADO DA APLICAÇÃO ---
+        let campaignId, userId, playerDocRef, campaignDocRef;
+        let unsubscribePlayer, unsubscribeEvents, unsubscribeCampaign;
+        let localInventory = Array(8).fill(null);
+        let masterId = null;
+        let selectedSlotIndex = -1;
+        let draggedItemIndex = null;
+        const attributesConfig = {
+            strength: 'Força', dexterity: 'Destreza', constitution: 'Constituição', intelligence: 'Inteligência', perception: 'Percepção'
+        };
+
+        // --- LÓGICA PRINCIPAL ---
+        
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                userId = user.uid;
+                const urlParams = new URLSearchParams(window.location.search);
+                campaignId = urlParams.get('campaign');
+                if (!campaignId) {
+                    window.location.href = 'campaign.html';
+                    return;
                 }
-            };
-
-            auth.onAuthStateChanged((user) => {
-                if (user) {
-                    userId = user.uid;
-                    const urlParams = new URLSearchParams(window.location.search);
-                    campaignId = urlParams.get('campaign');
-                    if (!campaignId) {
-                        window.location.href = 'campaign.html';
-                        return;
-                    }
-                    campaignDocRef = db.collection('campaigns').doc(campaignId);
-                    playerDocRef = campaignDocRef.collection('players').doc(userId);
-                    initializePlayer();
-                } else {
-                    window.location.href = 'index.html';
-                }
-            });
-
-            async function initializePlayer() {
-                const playerDoc = await playerDocRef.get();
-                if (!playerDoc.exists) {
-                    const user = auth.currentUser;
-                    const initialData = {
-                        name: user.displayName || "Sobrevivente",
-                        health: 100, maxHealth: 100,
-                        strength: 10, dexterity: 10, constitution: 10, intelligence: 10, perception: 10,
-                        notes: "", inventory: Array(8).fill(null), characterImage: ""
-                    };
-                    await playerDocRef.set(initialData);
-                }
-                attachListeners();
-                setupPlayerMap();
+                campaignDocRef = doc(db, 'campaigns', campaignId);
+                playerDocRef = doc(db, `campaigns/${campaignId}/players`, userId);
+                initializePlayer();
+            } else {
+                window.location.href = 'index.html';
             }
+        });
+        
+        async function initializePlayer() {
+            renderAttributesInputs();
+            const playerDoc = await getDoc(playerDocRef);
+            if (!playerDoc.exists()) {
+                const user = auth.currentUser;
+                const initialData = {
+                    name: user.displayName || "Sobrevivente",
+                    health: 20, maxHealth: 20,
+                    strength: 10, dexterity: 10, constitution: 10, intelligence: 10, perception: 10,
+                    notes: "", inventory: Array(8).fill(null),
+                    readDocuments: [],
+                    characterImage: `https://placehold.co/80x80/111111/444444?text=${(user.displayName || 'S').charAt(0)}`
+                };
+                await setDoc(playerDocRef, initialData);
+                localInventory = initialData.inventory;
+            } else {
+                localInventory = playerDoc.data().inventory || Array(8).fill(null);
+            }
+            
+            renderInventory(); // CORREÇÃO: Renderiza os slots iniciais
+            attachListeners();
+            attachDOMEventListeners();
+            setupDiceModal();
+        }
 
-            function attachListeners() {
-                if (unsubscribePlayer) unsubscribePlayer();
-                unsubscribePlayer = playerDocRef.onSnapshot((doc) => {
-                    if (doc.exists) updateUI(doc.data());
+        function attachListeners() {
+            if (unsubscribePlayer) unsubscribePlayer();
+            unsubscribePlayer = onSnapshot(playerDocRef, (doc) => {
+                if (doc.exists) updateUI(doc.data());
+            }, (error) => console.error("Player listener error:", error));
+
+            if (unsubscribeEvents) unsubscribeEvents();
+            const eventsQuery = query(collection(db, `campaigns/${campaignId}/events`), orderBy('timestamp', 'desc'));
+            unsubscribeEvents = onSnapshot(eventsQuery, (snapshot) => {
+                DOMElements.chatMessages.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const event = { id: doc.id, ...doc.data() };
+                    displayChatMessage(event);
                 });
-
-                if (unsubscribeEvents) unsubscribeEvents();
-                elements.chatMessages.innerHTML = '';
-                unsubscribeEvents = campaignDocRef.collection('events')
-                    .orderBy('timestamp', 'asc')
-                    .onSnapshot((snapshot) => {
-                        snapshot.docChanges().forEach(change => {
-                            if (change.type === 'added') {
-                                const event = { id: change.doc.id, ...change.doc.data() };
-                                if (isInitialEventsLoad) {
-                                    if (event.type === 'chat' || event.type === 'dice_roll') displayChatMessage(event);
-                                } else {
-                                    if (event.type === 'chat' || event.type === 'dice_roll') displayChatMessage(event);
-                                    else if (event.type === 'item_received' && event.recipientId === userId) showNotification(`Você recebeu o item: ${event.item.name}!`, 'success');
-                                }
+            }, (error) => console.error("Events listener error:", error));
+            
+            if (unsubscribeCampaign) unsubscribeCampaign();
+            unsubscribeCampaign = onSnapshot(campaignDocRef, (doc) => {
+                if (doc.exists()) {
+                    const campaignData = doc.data();
+                    DOMElements.campaignNameDisplay.textContent = `Campanha: ${campaignData.name}`;
+                    masterId = campaignData.masterId;
+                    
+                    if (campaignData.activeMapId) {
+                        getDoc(doc(db, `campaigns/${campaignId}/maps`, campaignData.activeMapId)).then(mapDoc => {
+                            if (mapDoc.exists()) {
+                                DOMElements.mapImage.src = mapDoc.data().url;
+                                DOMElements.mapTitle.textContent = mapDoc.data().name;
                             }
                         });
-                        isInitialEventsLoad = false;
-                    }, (error) => console.error("Erro no listener de eventos: ", error));
-
-                if (unsubscribeCampaign) unsubscribeCampaign();
-                unsubscribeCampaign = campaignDocRef.onSnapshot((doc) => {
-                    if (doc.exists) {
-                        const campaignData = doc.data();
-                        elements.campaignNameDisplay.textContent = `Campanha: ${campaignData.name}`;
-
-                        if (campaignData.active === false && masterId && userId !== masterId) {
-                            showNotification("O mestre encerrou a sessão.", "error", 10000);
-                            setTimeout(() => { window.location.href = 'campaign.html'; }, 3000);
-                        }
-
-                        if (campaignData.masterId !== masterId) {
-                            masterId = campaignData.masterId;
-                        }
-
-                        if (campaignData.activeMapId) {
-                            campaignDocRef.collection('maps').doc(campaignData.activeMapId).get().then(mapDoc => {
-                                if (mapDoc.exists) {
-                                    elements.mapImage.src = mapDoc.data().url;
-                                    elements.mapTitle.textContent = mapDoc.data().name;
-                                }
-                            });
-                        } else {
-                            elements.mapImage.src = "";
-                            elements.mapTitle.textContent = "Nenhum mapa ativo";
-                        }
                     } else {
-                        showNotification("A campanha foi encerrada ou deletada.", "error", 10000);
-                        setTimeout(() => { window.location.href = 'campaign.html'; }, 3000);
+                        DOMElements.mapImage.src = "";
+                        DOMElements.mapTitle.textContent = "Nenhum mapa ativo";
                     }
-                }, (error) => {
-                    showNotification("Conexão com a campanha perdida.", "error", 10000);
+                } else {
+                    showNotification("A campanha foi encerrada ou deletada.", "error", 10000);
                     setTimeout(() => { window.location.href = 'campaign.html'; }, 3000);
-                });
-
-                const mapStateRef = campaignDocRef.collection('mapState').doc('current');
-                mapStateRef.onSnapshot((doc) => {
-                    mapState.revealedAreas = doc.exists && doc.data().revealed ? doc.data().revealed : [];
-                    drawPlayerFogOfWar();
-                });
-            }
-
-            function setupPlayerMap() {
-                const canvas = elements.playerFogOfWarCanvas;
-                const mapImage = elements.mapImage;
-                if (!canvas) return;
-                mapState.ctx = canvas.getContext('2d');
-
-                const resizeCanvas = () => {
-                    if (mapImage.naturalWidth > 0) {
-                        const imgRect = mapImage.getBoundingClientRect();
-                        canvas.width = imgRect.width;
-                        canvas.height = imgRect.height;
-                        drawPlayerFogOfWar();
-                    }
-                };
-
-                mapImage.onload = resizeCanvas;
-                window.addEventListener('resize', resizeCanvas);
-            }
-
-            function drawPlayerFogOfWar() {
-                if (!mapState.ctx) return;
-                const { ctx, revealedAreas } = mapState;
-                const canvas = elements.playerFogOfWarCanvas;
-
-                if (canvas.width === 0 || canvas.height === 0) return;
-
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                if (revealedAreas && revealedAreas.length > 0) {
-                    ctx.globalCompositeOperation = 'destination-out';
-                    revealedAreas.forEach(area => {
-                        ctx.fillRect(area.x * canvas.width, area.y * canvas.height, area.w * canvas.width, area.h * canvas.height);
-                    });
-                    ctx.globalCompositeOperation = 'source-over';
                 }
-            }
-
-            function displayChatMessage(message) {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'chat-message';
-                const senderSpan = document.createElement('span');
-                senderSpan.className = 'message-sender';
-                senderSpan.textContent = message.senderName || 'Sistema';
-                if (message.senderId === userId) messageDiv.classList.add('own-message');
-                if (message.senderId === masterId) senderSpan.classList.add('master');
-
-                const textP = document.createElement('p');
-                textP.className = 'message-text';
-                textP.textContent = message.text;
-
-                messageDiv.appendChild(senderSpan);
-                messageDiv.appendChild(textP);
-                elements.chatMessages.appendChild(messageDiv);
-                elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
-            }
-            function sendChatMessage() {
-                const messageText = elements.chatInputField.value.trim();
-                if (!messageText) return;
-                const message = { senderId: userId, senderName: elements.charNameInput.value || auth.currentUser.displayName, text: messageText, timestamp: firebase.firestore.FieldValue.serverTimestamp(), type: 'chat' };
-                campaignDocRef.collection('events').add(message);
-                elements.chatInputField.value = '';
-            }
-            function updateUI(data) {
-                elements.charNameInput.value = data.name || '';
-                elements.attributes.strength.value = data.strength || 10;
-                elements.attributes.dexterity.value = data.dexterity || 10;
-                elements.attributes.constitution.value = data.constitution || 10;
-                elements.attributes.intelligence.value = data.intelligence || 10;
-                elements.attributes.perception.value = data.perception || 10;
-                elements.notesTextarea.value = data.notes || '';
-                if (data.characterImage) { elements.characterImage.innerHTML = `<img src="${data.characterImage}" alt="Personagem">`; } else { elements.characterImage.innerHTML = ''; }
-                updateCalculatedStats(data);
-                if (JSON.stringify(localInventory) !== JSON.stringify(data.inventory)) { localInventory = data.inventory && data.inventory.length === 8 ? data.inventory : Array(8).fill(null); renderInventory(); }
-            }
-            function updateCalculatedStats(data) {
-                updateAllModifiers();
-                const constitution = parseInt(elements.attributes.constitution.value);
-                const strength = parseInt(elements.attributes.strength.value);
-                const intelligence = parseInt(elements.attributes.intelligence.value);
-                const dexterity = parseInt(elements.attributes.dexterity.value);
-                const lifeTotal = Math.floor((constitution + strength) / 2);
-                elements.lifeTotalSpan.textContent = lifeTotal;
-                elements.sanityTotalSpan.textContent = intelligence * dexterity;
-                elements.healthBar.max = lifeTotal;
-                const currentHealth = data ? Math.min(data.health, lifeTotal) : parseInt(elements.healthBar.value);
-                elements.healthBar.value = Math.min(currentHealth, lifeTotal);
-                elements.healthValue.textContent = `${elements.healthBar.value}/${lifeTotal}`;
-                updateHealthBarColor();
-            }
-            function updateHealthBarColor() {
-                const percent = (elements.healthBar.value / elements.healthBar.max) * 100;
-                const barFill = document.getElementById('health-bar-fill');
-                if (!barFill) return;
-                barFill.style.width = percent + '%';
-                if (percent > 60) barFill.style.backgroundColor = '#2E7D32';
-                else if (percent > 30) barFill.style.backgroundColor = '#FBC02D';
-                else barFill.style.backgroundColor = '#C62828';
-            }
-            function saveData() {
-                if (!playerDocRef) return;
-                const dataToSave = {
-                    name: elements.charNameInput.value,
-                    health: parseInt(elements.healthBar.value),
-                    maxHealth: parseInt(elements.healthBar.max),
-                    strength: parseInt(elements.attributes.strength.value),
-                    dexterity: parseInt(elements.attributes.dexterity.value),
-                    constitution: parseInt(elements.attributes.constitution.value),
-                    intelligence: parseInt(elements.attributes.intelligence.value),
-                    perception: parseInt(elements.attributes.perception.value),
-                    notes: elements.notesTextarea.value,
-                    inventory: localInventory,
-                    characterImage: elements.characterImage.querySelector('img')?.src || ''
-                };
-                playerDocRef.update(dataToSave).catch(error => console.error("Erro ao salvar dados: ", error));
-            }
-
-            function discardItem(index) {
-                if (confirm(`Tem certeza que deseja descartar ${localInventory[index].name}?`)) {
-                    localInventory[index] = null;
-                    renderInventory();
-                    elements.itemDescription.innerHTML = 'Clique em um item para ver a descrição.';
-                    elements.selectedItemDisplay.textContent = 'Nenhum';
-                    saveData();
-                }
-            }
-            function useHealingItem(index) {
-                const item = localInventory[index];
-                if (item && item.type === 'healing' && item.healAmount) {
-                    adjustHealth(item.healAmount);
-                    showNotification(`Você usou ${item.name} e recuperou ${item.healAmount} de vida.`, 'success');
-                    localInventory[index] = null;
-                    renderInventory();
-                    elements.itemDescription.innerHTML = 'Clique em um item para ver a descrição.';
-                    elements.selectedItemDisplay.textContent = 'Nenhum';
-                    saveData();
-                }
-            }
-            function readDocument(index) {
-                const item = localInventory[index];
-                if (item && item.type === 'document') { elements.readDocumentModal.querySelector('#document-title').textContent = item.name; elements.readDocumentModal.querySelector('#document-content').innerHTML = `<p>${(item.content || "Este documento parece estar em branco.").replace(/\n/g, '<br>')}</p>`; elements.readDocumentModal.style.display = 'block'; }
-            }
-            function adjustAmmo(index, amount) {
-                const item = localInventory[index];
-                if (item && item.type === 'weapon') { if (item.ammoCount === undefined) item.ammoCount = 0; const newAmount = item.ammoCount + amount; item.ammoCount = Math.max(0, newAmount); saveData(); selectItem(index); }
-            }
-            function selectItem(index) {
-                selectedSlotIndex = index;
-                document.querySelectorAll('.inventory-slot.selected').forEach(s => s.classList.remove('selected'));
-                if (elements.inventoryGrid.children[index]) { elements.inventoryGrid.children[index].classList.add('selected'); }
-                const item = localInventory[index];
-                if (item) {
-                    elements.selectedItemDisplay.textContent = item.name;
-                    let descriptionHTML = `<p>${item.description || ''}</p><p><strong>Tipo:</strong> ${item.type || ''}</p>`;
-                    if (item.type === 'weapon') { descriptionHTML += ` <div class="ammo-control"> <strong>Munição:</strong> <div class="ammo-buttons"> <button id="decrease-ammo-btn" class="ammo-btn">-</button> <span class="ammo-count">${item.ammoCount || 0}</span> <button id="increase-ammo-btn" class="ammo-btn">+</button> </div> </div> `; }
-                    descriptionHTML += `<div class="item-actions">`;
-                    switch (item.type) { case 'healing': descriptionHTML += `<button id="use-item-btn" class="re-btn">Usar</button>`; break; case 'document': descriptionHTML += `<button id="read-doc-btn" class="re-btn">Ler</button>`; break; }
-                    descriptionHTML += `<button id="discard-item-btn" class="re-btn re-btn-secondary">Descartar</button>`;
-                    descriptionHTML += `</div>`;
-                    elements.itemDescription.innerHTML = descriptionHTML;
-                    document.getElementById('decrease-ammo-btn')?.addEventListener('click', () => adjustAmmo(selectedSlotIndex, -1));
-                    document.getElementById('increase-ammo-btn')?.addEventListener('click', () => adjustAmmo(selectedSlotIndex, 1));
-                    document.getElementById('use-item-btn')?.addEventListener('click', () => useHealingItem(selectedSlotIndex));
-                    document.getElementById('read-doc-btn')?.addEventListener('click', () => readDocument(selectedSlotIndex));
-                    document.getElementById('discard-item-btn')?.addEventListener('click', () => discardItem(selectedSlotIndex));
-                    if (item.type === 'weapon') { elements.equippedWeapon.innerHTML = `Arma: ${item.name}`; }
-                } else { elements.selectedItemDisplay.textContent = 'Nenhum'; elements.itemDescription.innerHTML = 'Clique em um item para ver a descrição.'; }
-            }
-            function renderInventory() {
-                elements.inventoryGrid.innerHTML = '';
-                for (let i = 0; i < 8; i++) {
-                    const item = localInventory[i];
-                    const slot = document.createElement('div');
-                    slot.className = 'inventory-slot';
-                    if (item) {
-                        slot.innerHTML = ''; slot.style.backgroundColor = '#222';
-                        if (item.image) { slot.style.backgroundImage = `url('${item.image}')`; slot.style.backgroundSize = 'cover'; slot.style.backgroundPosition = 'center'; slot.style.backgroundRepeat = 'no-repeat'; }
-                    } else { slot.innerHTML = `<span>+</span>`; slot.style.backgroundImage = 'none'; }
-                    if (i === selectedSlotIndex && !item) { selectedSlotIndex = -1; elements.selectedItemDisplay.textContent = 'Nenhum'; elements.itemDescription.innerHTML = 'Clique em um item para ver a descrição.'; }
-                    slot.addEventListener('click', () => selectItem(i));
-                    elements.inventoryGrid.appendChild(slot);
-                    if (i === selectedSlotIndex && item) { slot.classList.add('selected'); }
-                }
-            }
-
-            // --- EVENT LISTENERS ---
-            Object.values(elements.attributes).forEach(input => {
-                input.addEventListener('input', () => {
-                    if (parseInt(input.value) > 20) {
-                        input.value = 20;
-                    }
-                    if (parseInt(input.value) < 1) {
-                        input.value = 1;
-                    }
-                    updateCalculatedStats({ health: elements.healthBar.value });
-                });
-                input.addEventListener('change', saveData);
+            }, (error) => console.error("Campaign listener error:", error));
+        }
+        
+        // --- ATUALIZAÇÃO DE UI ---
+        
+        function updateUI(data) {
+            DOMElements.charNameInput.value = data.name || '';
+            DOMElements.charImgElement.src = data.characterImage || `https://placehold.co/80x80/111111/444444?text=${(data.name || 'S').charAt(0)}`;
+            DOMElements.notesTextarea.value = data.notes || '';
+            
+            Object.keys(attributesConfig).forEach(attr => {
+                const input = document.getElementById(attr);
+                if (input) input.value = data[attr] || 10;
             });
+            
+            updateCalculatedStats(data);
+            
+            if (JSON.stringify(localInventory) !== JSON.stringify(data.inventory)) {
+                localInventory = data.inventory && data.inventory.length === 8 ? data.inventory : Array(8).fill(null);
+                renderInventory();
+            }
+            updateEquippedWeapon();
+        }
+        
+        function renderAttributesInputs() {
+            DOMElements.attributesGrid.innerHTML = '';
+            for (const key in attributesConfig) {
+                const name = attributesConfig[key];
+                DOMElements.attributesGrid.innerHTML += `<div class="attribute"><label for="${key}">${name}: <span class="attribute-modifier" id="${key}-mod"></span></label><input type="number" id="${key}" value="10" min="1" max="30"></div>`;
+            }
+            Object.keys(attributesConfig).forEach(key => {
+                 document.getElementById(key).addEventListener('change', saveData);
+                 document.getElementById(key).addEventListener('input', () => updateCalculatedStats());
+            });
+        }
+        
+        function calculateModifier(score) {
+            const modifier = Math.floor((score - 10) / 2);
+            return modifier >= 0 ? `+${modifier}` : modifier.toString();
+        }
 
-            function adjustHealth(amount) {
-                let newHealth = parseInt(elements.healthBar.value) + amount;
-                newHealth = Math.max(0, Math.min(newHealth, elements.healthBar.max));
-                elements.healthBar.value = newHealth;
-                updateCalculatedStats({ health: newHealth });
+        function updateCalculatedStats(data) {
+            let healthData = data ? data.health : (parseInt(DOMElements.healthBar.value) || 0);
+            const constitution = parseInt(document.getElementById('constitution')?.value) || 10;
+            const strength = parseInt(document.getElementById('strength')?.value) || 10;
+            const intelligence = parseInt(document.getElementById('intelligence')?.value) || 10;
+            
+            Object.keys(attributesConfig).forEach(attr => {
+                 const score = parseInt(document.getElementById(attr)?.value) || 10;
+                 document.getElementById(`${attr}-mod`).textContent = calculateModifier(score);
+            });
+            
+            const lifeTotal = Math.floor((constitution + strength) / 2);
+            DOMElements.lifeTotalSpan.textContent = lifeTotal;
+            DOMElements.sanityTotalSpan.textContent = (intelligence * 5 + 50).toString();
+            DOMElements.healthBar.max = lifeTotal;
+            
+            const currentHealth = Math.min(healthData, lifeTotal);
+            DOMElements.healthBar.value = currentHealth;
+            DOMElements.healthValue.textContent = `${currentHealth}/${lifeTotal}`;
+            updateHealthBarColor();
+        }
+        
+        function updateHealthBarColor() {
+            const percent = (DOMElements.healthBar.value / DOMElements.healthBar.max) * 100;
+            DOMElements.healthBarFill.style.width = percent + '%';
+            if (percent > 60) DOMElements.healthBarFill.style.backgroundColor = '#2E7D32';
+            else if (percent > 30) DOMElements.healthBarFill.style.backgroundColor = '#FBC02D';
+            else DOMElements.healthBarFill.style.backgroundColor = '#C62828';
+        }
+        
+        async function saveData() {
+            if (!playerDocRef) return;
+            const dataToSave = {
+                name: DOMElements.charNameInput.value,
+                health: parseInt(DOMElements.healthBar.value),
+                maxHealth: parseInt(DOMElements.healthBar.max),
+                notes: DOMElements.notesTextarea.value,
+                inventory: localInventory,
+                characterImage: DOMElements.charImgElement.src
+            };
+            Object.keys(attributesConfig).forEach(attr => {
+                dataToSave[attr] = parseInt(document.getElementById(attr).value);
+            });
+            try {
+                // We only update, never overwrite the whole doc, to prevent race conditions with readDocuments
+                await updateDoc(playerDocRef, dataToSave);
+            } catch (error) {
+                console.error("Erro ao salvar dados: ", error);
+                showNotification("Falha ao salvar dados.", "error");
+            }
+        }
+        
+        function updateEquippedWeapon() {
+            const weapon = localInventory.find(item => item && item.equipped);
+            DOMElements.equippedWeapon.textContent = weapon ? `Arma: ${weapon.name}` : 'Arma: Nenhuma';
+        }
+
+        // --- LÓGICA DE INVENTÁRIO (COM DRAG & DROP) ---
+        
+        function renderInventory() {
+            DOMElements.inventoryGrid.innerHTML = '';
+            for (let i = 0; i < 8; i++) {
+                const item = localInventory[i];
+                const slot = document.createElement('div');
+                slot.className = 'inventory-slot';
+                slot.dataset.index = i;
+
+                if (item) {
+                    slot.draggable = true;
+                    slot.style.backgroundImage = `url('${item.image}')`;
+                    if (item.equipped) slot.classList.add('equipped');
+                } else {
+                    slot.innerHTML = `<span>+</span>`;
+                    slot.style.backgroundImage = 'none';
+                }
+                
+                if (i === selectedSlotIndex) slot.classList.add('item-selected');
+                
+                slot.addEventListener('click', () => selectItem(i));
+                slot.addEventListener('dragstart', handleDragStart);
+                slot.addEventListener('dragover', handleDragOver);
+                slot.addEventListener('dragleave', handleDragLeave);
+                slot.addEventListener('drop', handleDrop);
+                slot.addEventListener('dragend', handleDragEnd);
+
+                DOMElements.inventoryGrid.appendChild(slot);
+            }
+        }
+
+        function handleDragStart(e) {
+            draggedItemIndex = parseInt(e.target.dataset.index);
+            if (!localInventory[draggedItemIndex]) {
+                e.preventDefault();
+                return;
+            }
+            setTimeout(() => e.target.classList.add('dragging'), 0);
+        }
+
+        function handleDragOver(e) { e.preventDefault(); e.target.closest('.inventory-slot')?.classList.add('drag-over'); }
+        function handleDragLeave(e) { e.target.closest('.inventory-slot')?.classList.remove('drag-over'); }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const targetSlot = e.target.closest('.inventory-slot');
+            if (!targetSlot || draggedItemIndex === null) return;
+            const targetIndex = parseInt(targetSlot.dataset.index);
+            
+            if (targetIndex !== draggedItemIndex) {
+                [localInventory[draggedItemIndex], localInventory[targetIndex]] = [localInventory[targetIndex], localInventory[draggedItemIndex]];
+                if (selectedSlotIndex === draggedItemIndex) selectedSlotIndex = targetIndex;
+                else if (selectedSlotIndex === targetIndex) selectedSlotIndex = draggedItemIndex;
+                
+                renderInventory(); 
                 saveData();
             }
-            elements.increaseHealthBtn.addEventListener('click', () => adjustHealth(1));
-            elements.decreaseHealthBtn.addEventListener('click', () => adjustHealth(-1));
-            elements.sendChatBtn.addEventListener('click', sendChatMessage);
-            elements.chatInputField.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
-            elements.toggleChatBtn.addEventListener('click', () => { elements.chatContainer.classList.toggle('collapsed'); });
-            elements.characterImage.addEventListener('click', () => elements.imageUpload.click());
-            elements.imageUpload.addEventListener('change', e => { if (e.target.files[0]) { const reader = new FileReader(); reader.onload = event => { elements.characterImage.innerHTML = `<img src="${event.target.result}" alt="Personagem">`; saveData(); }; reader.readAsDataURL(e.target.files[0]); } });
-            elements.docsBtn.addEventListener('click', () => { elements.docsModal.style.display = 'block'; });
-            elements.saveNotesBtn.addEventListener('click', saveData);
-            elements.mapBtn.addEventListener('click', () => { elements.mapModal.style.display = 'block'; });
-            elements.diceBtn.addEventListener('click', () => { elements.diceModal.style.display = 'block'; });
-            elements.audioToggle.addEventListener('click', () => { const audio = elements.backgroundAudio; if (audio.paused) { audio.play().catch(e => console.log("Playback falhou", e)); elements.audioIcon.textContent = '🔊'; } else { audio.pause(); elements.audioIcon.textContent = '🔇'; } });
+        }
+        
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            draggedItemIndex = null;
+        }
 
-            document.querySelectorAll('.dice-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const diceAudio = document.getElementById('dice-audio');
-                    if (diceAudio) { diceAudio.currentTime = 0; diceAudio.play(); }
+        function selectItem(index) {
+            const oldSelectedSlot = DOMElements.inventoryGrid.querySelector('.item-selected');
+            if(oldSelectedSlot) oldSelectedSlot.classList.remove('item-selected');
+            
+            selectedSlotIndex = index;
+            
+            if (index > -1 && localInventory[index]) {
+                const newSelectedSlot = DOMElements.inventoryGrid.children[index];
+                if(newSelectedSlot) newSelectedSlot.classList.add('item-selected');
+            }
+            
+            const item = index >= 0 ? localInventory[index] : null;
 
-                    const sides = parseInt(btn.dataset.sides);
-                    const quantity = parseInt(document.getElementById('diceQuantity').value) || 1;
-                    const attributeBonusSelect = document.getElementById('attributeBonus');
-                    const selectedAttribute = attributeBonusSelect.value;
+            if (item) {
+                DOMElements.selectedItemDisplay.textContent = item.name;
+                let descriptionHTML = `<p>${item.description || ''}</p><p><strong>Tipo:</strong> ${item.type || ''}</p>`;
+                if (item.type === 'weapon') {
+                    descriptionHTML += `<div class="ammo-control" style="display: flex; align-items: center; gap: 10px; margin-top: 5px;"><strong>Munição:</strong><button class="health-btn" data-action="decrease-ammo">-</button><span class="ammo-count">${item.ammoCount === undefined ? 'N/A' : item.ammoCount}</span><button class="health-btn" data-action="increase-ammo">+</button></div>`;
+                }
+                descriptionHTML += `<div class="item-actions" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px;">`;
+                if(item.type === 'weapon') descriptionHTML += `<button class="re-btn" data-action="equip">${item.equipped ? 'Desequipar' : 'Equipar'}</button>`;
+                if(item.type === 'healing') descriptionHTML += `<button class="re-btn" data-action="use">Usar</button>`;
+                if(item.type === 'document') descriptionHTML += `<button class="re-btn" data-action="read">Ler</button>`;
+                descriptionHTML += `<button class="re-btn re-btn-secondary" data-action="discard">Descartar</button></div>`;
+                DOMElements.itemDescription.innerHTML = descriptionHTML;
+            } else {
+                selectedSlotIndex = -1;
+                DOMElements.selectedItemDisplay.textContent = 'Nenhum';
+                DOMElements.itemDescription.innerHTML = 'Clique em um item para ver a descrição.';
+            }
+        }
 
-                    let rolls = [];
-                    let baseTotal = 0;
-                    for (let i = 0; i < quantity; i++) {
-                        const roll = Math.floor(Math.random() * sides) + 1;
-                        rolls.push(roll);
-                        baseTotal += roll;
-                    }
-
-                    let modifier = 0;
-                    let modifierText = "";
-                    if (selectedAttribute !== 'none') {
-                        const score = parseInt(elements.attributes[selectedAttribute].value);
-                        modifier = Math.floor((score - 10) / 2);
-                        const attrName = attributeBonusSelect.options[attributeBonusSelect.selectedIndex].text;
-                        modifierText = ` (${attrName})`;
-                    }
-
-                    const finalTotal = baseTotal + modifier;
-
-                    let rollText;
-                    if (quantity === 1) {
-                        rollText = `rolou 1d${sides}${modifierText}: ${baseTotal}`;
-                        if (modifier !== 0) rollText += ` ${modifier > 0 ? '+' : '-'} ${Math.abs(modifier)} = ${finalTotal}`;
-                    } else {
-                        rollText = `rolou ${quantity}d${sides}${modifierText}: [${rolls.join(', ')}]`;
-                        if (modifier !== 0) rollText += ` ${modifier > 0 ? '+' : '-'} ${Math.abs(modifier)}`;
-                        rollText += ` = ${finalTotal}`;
-                    }
-
-                    elements.diceResultDiv.textContent = `Resultado: ${finalTotal}`;
-                    const message = { senderId: userId, senderName: elements.charNameInput.value || auth.currentUser.displayName, text: rollText, timestamp: firebase.firestore.FieldValue.serverTimestamp(), type: 'dice_roll' };
-                    campaignDocRef.collection('events').add(message);
-                });
+        // --- MANIPULADORES DE EVENTOS DO DOM ---
+        
+        function attachDOMEventListeners() {
+            DOMElements.itemDescription.addEventListener('click', e => {
+                if(e.target.tagName !== 'BUTTON' || selectedSlotIndex === -1) return;
+                const action = e.target.dataset.action;
+                const actions = { 'discard': () => confirmDiscardItem(selectedSlotIndex), 'use': () => useHealingItem(selectedSlotIndex), 'read': () => readDocument(selectedSlotIndex), 'equip': () => toggleEquipItem(selectedSlotIndex), 'increase-ammo': () => adjustAmmo(selectedSlotIndex, 1), 'decrease-ammo': () => adjustAmmo(selectedSlotIndex, -1) };
+                if (actions[action]) actions[action]();
             });
 
-            document.querySelectorAll('.close-btn').forEach(btn => { btn.onclick = () => { btn.closest('.modal').style.display = 'none'; if (btn.closest('.modal').id === 'docs-modal') saveData(); } });
-            window.onclick = (e) => { if (e.target.classList.contains('modal')) { e.target.style.display = 'none'; if (e.target.id === 'docs-modal') saveData(); } }
-            elements.backToCampaignsBtn.addEventListener('click', () => { window.location.href = 'campaign.html'; });
-        });
+            DOMElements.increaseHealthBtn.addEventListener('click', () => adjustHealth(1, true));
+            DOMElements.decreaseHealthBtn.addEventListener('click', () => adjustHealth(-1, true));
+            DOMElements.sendChatBtn.addEventListener('click', sendChatMessage);
+            DOMElements.chatInputField.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
+            DOMElements.chatHeader.addEventListener('click', () => {
+                DOMElements.chatContainer.classList.toggle('collapsed');
+                DOMElements.toggleChatBtn.querySelector('i').classList.toggle('fa-chevron-down');
+            });
+            DOMElements.characterImage.addEventListener('click', () => DOMElements.imageUpload.click());
+            DOMElements.imageUpload.addEventListener('change', e => {
+                if (e.target.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = event => { DOMElements.charImgElement.src = event.target.result; saveData(); };
+                    reader.readAsDataURL(e.target.files[0]);
+                }
+            });
+            
+            DOMElements.docsBtn.addEventListener('click', openDocsModal);
+            DOMElements.mapBtn.addEventListener('click', () => DOMElements.mapModal.style.display = 'block');
+            DOMElements.diceBtn.addEventListener('click', () => DOMElements.diceModal.style.display = 'block');
+            DOMElements.saveNotesBtn.addEventListener('click', saveNotes);
+            
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', (e) => { if (e.target.classList.contains('modal') || e.target.classList.contains('close-btn')) modal.style.display = 'none'; });
+            });
+            
+            let audioStarted = false;
+            const startAudio = () => {
+                if (audioStarted) return;
+                audioStarted = true;
+                DOMElements.backgroundAudio.play().catch(e => console.log("Audio playback failed:", e));
+                document.body.removeEventListener('click', startAudio);
+            };
+            document.body.addEventListener('click', startAudio);
+
+            DOMElements.audioToggle.addEventListener('click', () => {
+                const audio = DOMElements.backgroundAudio;
+                audio.muted = !audio.muted;
+                DOMElements.audioIcon.textContent = audio.muted ? '🔇' : '🔊';
+            });
+            
+            DOMElements.backToCampaignsBtn.addEventListener('click', () => window.location.href = 'campaign.html');
+            DOMElements.charNameInput.addEventListener('change', saveData);
+        }
+        
+        // --- AÇÕES DE ITENS E PERSONAGEM ---
+        
+        function adjustHealth(amount, shouldSave = false) {
+             let newHealth = parseInt(DOMElements.healthBar.value) + amount;
+             newHealth = Math.max(0, Math.min(newHealth, DOMElements.healthBar.max));
+             DOMElements.healthBar.value = newHealth;
+             updateCalculatedStats({ health: newHealth });
+             if(shouldSave) saveData();
+        }
+        
+        function confirmDiscardItem(index) {
+             const item = localInventory[index];
+             if (!item) return;
+             showConfirmModal(`Tem certeza que deseja descartar ${item.name}?`, () => {
+                localInventory[index] = null;
+                selectItem(-1);
+                renderInventory();
+                saveData();
+                showNotification(`${item.name} foi descartado.`, 'info');
+             });
+        }
+        
+        function useHealingItem(index) {
+             const item = localInventory[index];
+             if (item && item.type === 'healing' && item.healAmount) {
+                 adjustHealth(item.healAmount, false);
+                 showNotification(`Você usou ${item.name} e recuperou ${item.healAmount} de vida.`, 'success');
+                 localInventory[index] = null;
+                 selectItem(-1);
+                 renderInventory();
+                 saveData();
+             }
+        }
+
+        async function readDocument(index) {
+            const item = localInventory[index];
+            if (item && item.type === 'document') {
+                DOMElements.readDocumentModal.querySelector('#document-title').textContent = item.name;
+                DOMElements.readDocumentModal.querySelector('#document-content').innerHTML = `<p>${(item.content || "Este documento parece estar em branco.").replace(/\n/g, '<br>')}</p>`;
+                DOMElements.readDocumentModal.style.display = 'block';
+                
+                try {
+                    const playerDoc = await getDoc(playerDocRef);
+                    const playerData = playerDoc.data();
+                    const readDocuments = playerData.readDocuments || [];
+                    const isAlreadyRead = readDocuments.some(doc => doc.name === item.name && doc.content === item.content);
+                    if (!isAlreadyRead) {
+                        readDocuments.push({ name: item.name, content: item.content });
+                        await updateDoc(playerDocRef, { readDocuments });
+                        showNotification(`'${item.name}' adicionado aos seus documentos.`, 'success');
+                    }
+                } catch (error) { console.error("Error saving read document: ", error); }
+            }
+        }
+        
+        function adjustAmmo(index, amount) {
+             const item = localInventory[index];
+             if (item && item.type === 'weapon') {
+                 if (item.ammoCount === undefined) item.ammoCount = 0;
+                 item.ammoCount = Math.max(0, item.ammoCount + amount);
+                 selectItem(index);
+                 saveData();
+             }
+        }
+        
+        function toggleEquipItem(index) {
+            const item = localInventory[index];
+            if (!item || item.type !== 'weapon') return;
+            item.equipped = !item.equipped;
+            if (item.equipped) {
+                localInventory.forEach((invItem, i) => { if (invItem && invItem.type === 'weapon' && i !== index) invItem.equipped = false; });
+            }
+            selectItem(index);
+            saveData();
+        }
+        
+        // --- CHAT E EVENTOS ---
+
+        function handleRealtimeEvent(event) {
+             if (event.type === 'item_received' && event.recipientId === userId) {
+                showNotification(`Você recebeu o item: ${event.item.name}!`, 'success');
+            }
+        }
+        
+        function displayChatMessage(message) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'chat-message';
+            if(message.senderId === userId) msgDiv.classList.add('own-message');
+            
+            const time = message.timestamp ? new Date(message.timestamp.seconds * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute:'2-digit' }) : '';
+            
+            let textContent = message.text;
+            if(message.type === 'dice_roll') {
+                textContent = `<span class="dice-roll-text">${message.text}</span>`;
+            }
+
+            msgDiv.innerHTML = `<div class="sender-info"><span class="sender">${message.senderName || 'Sistema'}</span><span class="time">${time}</span></div><div class="text">${textContent}</div>`;
+            DOMElements.chatMessages.appendChild(msgDiv);
+        }
+
+        async function sendChatMessage() {
+            const messageText = DOMElements.chatInputField.value.trim();
+            if (!messageText) return;
+            const message = { senderId: userId, senderName: DOMElements.charNameInput.value || auth.currentUser.displayName, text: messageText, timestamp: serverTimestamp(), type: 'chat' };
+            await addDoc(collection(db, `campaigns/${campaignId}/events`), message);
+            DOMElements.chatInputField.value = '';
+        }
+        
+        // --- UTILITÁRIOS ---
+        
+        async function openDocsModal() {
+            try {
+                const playerDoc = await getDoc(playerDocRef);
+                if (playerDoc.exists()) {
+                    const playerData = playerDoc.data();
+                    DOMElements.notesTextarea.value = playerData.notes || '';
+                    const readDocsList = DOMElements.docsModal.querySelector('#read-docs-list');
+                    readDocsList.innerHTML = '';
+                    const readDocuments = playerData.readDocuments || [];
+                    if (readDocuments.length === 0) {
+                        readDocsList.innerHTML = '<li>Nenhum documento lido ainda.</li>';
+                    } else {
+                        readDocuments.forEach(doc => {
+                            const li = document.createElement('li');
+                            li.textContent = doc.name;
+                            li.onclick = () => {
+                                DOMElements.readDocumentModal.querySelector('#document-title').textContent = doc.name;
+                                DOMElements.readDocumentModal.querySelector('#document-content').innerHTML = `<p>${(doc.content || "").replace(/\n/g, '<br>')}</p>`;
+                                DOMElements.docsModal.style.display = 'none';
+                                DOMElements.readDocumentModal.style.display = 'block';
+                            };
+                            readDocsList.appendChild(li);
+                        });
+                    }
+                }
+            } catch (error) { console.error("Error fetching documents and notes: ", error); }
+            DOMElements.docsModal.style.display = 'block';
+        }
+
+        async function saveNotes() {
+            if (!playerDocRef) return;
+            try {
+                await updateDoc(playerDocRef, { notes: DOMElements.notesTextarea.value });
+                showNotification("Anotações salvas!", "success");
+            } catch (error) {
+                console.error("Error saving notes: ", error);
+                showNotification("Falha ao salvar anotações.", "error");
+            }
+        }
+
+        function showNotification(message, type = 'info', duration = 4000) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            DOMElements.notificationContainer.appendChild(notification);
+            setTimeout(() => notification.remove(), duration);
+        }
+        
+        function showConfirmModal(text, onConfirm) {
+            DOMElements.confirmActionText.textContent = text;
+            DOMElements.confirmActionModal.style.display = 'block';
+            const closeConfirm = () => DOMElements.confirmActionModal.style.display = 'none';
+            DOMElements.confirmActionYes.onclick = () => { onConfirm(); closeConfirm(); };
+            DOMElements.confirmActionNo.onclick = closeConfirm;
+        }
+        
+        function setupDiceModal() {
+            const optionsContainer = DOMElements.diceModal.querySelector('.dice-options');
+            const buttonsContainer = DOMElements.diceModal.querySelector('.dice-buttons');
+            optionsContainer.innerHTML = `<div class="dice-option"><label for="diceQuantity">Qtd:</label><input type="number" id="diceQuantity" value="1" min="1" max="100"></div><div class="dice-option"><label for="attributeBonus">Bônus:</label><select id="attributeBonus"><option value="none">Nenhum</option>${Object.keys(attributesConfig).map(key => `<option value="${key}">${attributesConfig[key]}</option>`).join('')}</select></div>`;
+            buttonsContainer.innerHTML = [20, 12, 10, 8, 6, 4].map(sides => `<button class="dice-btn re-btn" data-sides="${sides}">d${sides}</button>`).join('');
+            buttonsContainer.querySelectorAll('.dice-btn').forEach(btn => btn.addEventListener('click', handleDiceRoll));
+        }
+
+        function handleDiceRoll(e) {
+            const diceAudio = document.getElementById('dice-audio');
+            if (diceAudio) { diceAudio.currentTime = 0; diceAudio.play(); }
+
+            const sides = parseInt(e.target.dataset.sides);
+            const quantity = parseInt(document.getElementById('diceQuantity').value) || 1;
+            const attributeBonusSelect = document.getElementById('attributeBonus');
+            const selectedAttribute = attributeBonusSelect.value;
+            
+            let rolls = [], baseTotal = 0;
+            for (let i = 0; i < quantity; i++) { const roll = Math.floor(Math.random() * sides) + 1; rolls.push(roll); baseTotal += roll; }
+
+            let modifier = 0; let modifierText = "";
+            if (selectedAttribute !== 'none') {
+                const score = parseInt(document.getElementById(selectedAttribute).value);
+                modifier = Math.floor((score - 10) / 2);
+                modifierText = ` (${attributeBonusSelect.options[attributeBonusSelect.selectedIndex].text})`;
+            }
+
+            const finalTotal = baseTotal + modifier;
+            let rollText = `rolou ${quantity}d${sides}${modifierText}: [${rolls.join(', ')}]`;
+            if (modifier !== 0) rollText += ` ${modifier > 0 ? '+' : ''}${modifier}`;
+            rollText += ` = ${finalTotal}`;
+            
+            DOMElements.diceResultDiv.textContent = `Resultado: ${finalTotal}`;
+            const message = { senderId: userId, senderName: DOMElements.charNameInput.value || auth.currentUser.displayName, text: rollText, timestamp: serverTimestamp(), type: 'dice_roll' };
+            addDoc(collection(db, `campaigns/${campaignId}/events`), message);
+        }
+
     </script>
 </body>
-
 </html>
