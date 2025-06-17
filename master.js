@@ -82,6 +82,19 @@ document.addEventListener('DOMContentLoaded', function () {
         getInitiativeFromAllBtn: document.getElementById('getInitiativeFromAllBtn'), // NOVO
         nextInitiativeBtn: document.getElementById('nextInitiativeBtn'), // NOVO
         clearInitiativeBtn: document.getElementById('clearInitiativeBtn'), // NOVO
+        uploadItemImageBtn: document.getElementById('uploadItemImageBtn'), // Botão de upload de item
+        itemImageUrl: document.getElementById('itemImageUrl'), // Campo oculto da URL do item
+        itemImagePreview: document.getElementById('itemImagePreview'), // Preview da imagem do item
+        enemyModal: document.getElementById('enemyModal'), // Já deve existir
+        enemyForm: document.getElementById('enemyForm'), // Já deve existir
+        uploadEnemyImageBtn: document.getElementById('uploadEnemyImageBtn'), // NOVO
+        enemyImageUrl: document.getElementById('enemyImageUrl'),       // NOVO
+        enemyImagePreview: document.getElementById('enemyImagePreview'), // NOVO
+        mapNameInput: document.getElementById('mapNameInput'), // Já existe
+        addMapBtn: document.getElementById('addMapBtn'),       // Já existe
+        uploadMapImageBtn: document.getElementById('uploadMapImageBtn'), // NOVO
+        mapUrlHiddenInput: document.getElementById('mapUrlHiddenInput'), // NOVO
+        mapImagePreview: document.getElementById('mapImagePreview'),     // NOVO
     };
 
     // --- ESTADO DA APLICAÇÃO ---
@@ -111,14 +124,60 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => notification.remove(), 4000);
     };
 
+    const CLOUDINARY_CLOUD_NAME = "dea9roltg";
+    const CLOUDINARY_UPLOAD_PRESET = "re_rpg_unsigned"; // O nome do preset "unsigned" que você criou
+
+    const openCloudinaryWidget = (onSuccess) => {
+        const myWidget = cloudinary.createUploadWidget({
+            cloudName: CLOUDINARY_CLOUD_NAME,
+            uploadPreset: CLOUDINARY_UPLOAD_PRESET,
+            folder: 'rpg_assets', // Opcional: organiza os uploads em uma pasta no Cloudinary
+            sources: ['local', 'url', 'camera'], // Permite upload do computador, por URL ou pela câmera
+            styles: { // Opcional: estiliza o widget para combinar com seu tema
+                palette: {
+                    window: "#1E1E1E",
+                    windowBorder: "#C0A050",
+                    tabIcon: "#C0A050",
+                    menuIcons: "#E0E0E0",
+                    textDark: "#111111",
+                    textLight: "#FFFFFF",
+                    link: "#C0A050",
+                    action: "#9c813a",
+                    inactiveTabIcon: "#8E8E8E",
+                    error: "#c05050",
+                    sourceBg: "#303030"
+                },
+                fonts: {
+                    default: null,
+                    "'IM Fell English SC', serif": {
+                        url: "https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&display=swap",
+                        active: true
+                    }
+                }
+            }
+        }, (error, result) => {
+            if (!error && result && result.event === "success") {
+                console.log('Upload bem-sucedido: ', result.info);
+                // Chama a função de callback com a URL segura
+                onSuccess(result.info.secure_url);
+            }
+            if (error) {
+                showNotification('Erro no upload: ' + error.message, 'error');
+                console.error('Erro no Widget Cloudinary:', error);
+            }
+        });
+
+        myWidget.open();
+    }
+
     const handleUseItem = async (characterId, itemIndex) => {
         const characterDocRef = playersRef.doc(characterId);
-        
+
         try {
             await db.runTransaction(async (transaction) => {
                 const charDoc = await transaction.get(characterDocRef);
                 if (!charDoc.exists) { throw "Personagem não encontrado!"; }
-                
+
                 const charData = charDoc.data();
                 const inventory = charData.inventory || [];
                 const item = inventory[itemIndex];
@@ -131,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Aplica a cura
                 const newHealth = Math.min(charData.maxHealth, charData.health + item.healAmount);
                 transaction.update(characterDocRef, { health: newHealth });
-                
+
                 // Remove o item do inventário
                 inventory.splice(itemIndex, 1);
                 // Preenche o final para manter o tamanho 8
@@ -175,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 resolve(null);
             };
         });
-        
+
         if (!targetId) return; // Transferência cancelada
 
         const sourceDocRef = playersRef.doc(sourceCharacterId);
@@ -187,7 +246,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const targetDoc = await transaction.get(targetDocRef);
 
                 if (!sourceDoc.exists || !targetDoc.exists) { throw "Personagem não encontrado!"; }
-                
+
                 const sourceData = sourceDoc.data();
                 const targetData = targetDoc.data();
                 const sourceInventory = sourceData.inventory || [];
@@ -198,11 +257,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 const emptySlot = targetInventory.findIndex(slot => slot === null);
                 if (emptySlot === -1) { throw `O inventário de ${targetData.name} está cheio!`; }
-                
+
                 // Remove do inventário de origem
                 sourceInventory.splice(itemIndex, 1);
-                while(sourceInventory.length < 8) { sourceInventory.push(null); }
-                
+                while (sourceInventory.length < 8) { sourceInventory.push(null); }
+
                 // Adiciona ao inventário de destino
                 targetInventory[emptySlot] = itemToTransfer;
 
@@ -294,7 +353,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             if (item.type === 'healing') iconClass = 'fa-heart';
                             if (item.type === 'key') iconClass = 'fa-key';
                             if (item.type === 'document') iconClass = 'fa-file-alt';
-                            
+
                             inventoryHtml += `<li class="npc-inventory-item"><i class="fas ${iconClass}"></i>${item.name}</li>`;
                         }
                     });
@@ -336,7 +395,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (char.isActiveTurn) {
                 item.classList.add('active');
             }
-            
+
             // HTML atualizado para incluir o número da ordem
             item.innerHTML = `
                 <div class="order-number">${index + 1}</div>
@@ -421,38 +480,69 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- LÓGICA DE MODAIS ---
     const openModal = (modalId, data = {}) => {
-        const modal = document.getElementById(modalId);
-        if (!modal) return;
-        const form = modal.querySelector('form');
-        if (form) form.reset();
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
 
-        const entityName = modalId.replace('Modal', '');
-        const titleElement = modal.querySelector('h2');
-        const hiddenIdInput = form ? form.querySelector('input[type="hidden"]') : null;
+    const form = modal.querySelector('form');
+    if (form) form.reset();
 
-        if (titleElement) {
-            titleElement.textContent = data.id ? `Editar ${entityName.charAt(0).toUpperCase() + entityName.slice(1)}` : `Criar Novo ${entityName.charAt(0).toUpperCase() + entityName.slice(1)}`;
-        }
-        if (hiddenIdInput) {
-            hiddenIdInput.value = data.id || '';
-        }
+    const entityName = modalId.replace('Modal', '');
+    const titleElement = modal.querySelector('h2');
+    const hiddenIdInput = form ? form.querySelector('input[type="hidden"]') : null;
 
-        if (form) {
-            for (const element of form.elements) {
-                if (element.id) {
-                    const fieldName = element.id.replace(new RegExp(`^${entityName}`, 'i'), '').toLowerCase();
-                    if (data[fieldName] !== undefined) {
-                        element.value = data[fieldName];
-                    }
+    if (titleElement) {
+        titleElement.textContent = data.id ? `Editar ${entityName}` : `Criar Novo ${entityName}`;
+    }
+    if (hiddenIdInput) {
+        hiddenIdInput.value = data.id || '';
+    }
+
+    if (form) {
+        for (const element of form.elements) {
+            if (element.id && !element.id.toLowerCase().includes('image')) {
+                const fieldName = element.id.replace(new RegExp(`^${entityName}`, 'i'), '').toLowerCase();
+                if (data[fieldName] !== undefined) {
+                    element.value = data[fieldName];
                 }
             }
         }
-        
-        if (modalId === 'itemModal') {
-            updateItemSpecificFields(data.type || 'misc', data);
+    }
+
+    if (modalId === 'itemModal') {
+        const imageUrlInput = document.getElementById('itemImageUrl');
+        const previewContainer = document.getElementById('itemImagePreview');
+
+        if (imageUrlInput) imageUrlInput.value = '';
+        if (previewContainer) previewContainer.innerHTML = '';
+
+        if (data.image && imageUrlInput && previewContainer) {
+            imageUrlInput.value = data.image;
+            previewContainer.innerHTML = `
+                <img src="${data.image}" alt="Preview" style="max-width: 100px; max-height: 100px; border: 1px solid var(--primary-color);">
+                <button type="button" id="removeItemImageBtn" class="re-btn re-btn-danger" title="Remover Imagem"><i class="fas fa-trash"></i></button>
+            `;
         }
-        modal.style.display = 'block';
-    };
+        updateItemSpecificFields(data.type || 'misc', data);
+    } 
+    // CORREÇÃO: O 'else if' foi movido para fora, para o nível correto.
+    else if (modalId === 'enemyModal') {
+        const imageUrlInput = document.getElementById('enemyImageUrl');
+        const previewContainer = document.getElementById('enemyImagePreview');
+
+        if (imageUrlInput) imageUrlInput.value = '';
+        if (previewContainer) previewContainer.innerHTML = '';
+
+        if (data.image && imageUrlInput && previewContainer) {
+            imageUrlInput.value = data.image;
+            previewContainer.innerHTML = `
+                <img src="${data.image}" alt="Preview" style="max-width: 100px; max-height: 100px; border: 1px solid var(--primary-color);">
+                <button type="button" id="removeEnemyImageBtn" class="re-btn re-btn-danger" title="Remover Imagem"><i class="fas fa-trash"></i></button>
+            `;
+        }
+    }
+
+    modal.style.display = 'block';
+};
 
     const closeModal = (modalId) => {
         const modal = document.getElementById(modalId);
@@ -476,10 +566,10 @@ document.addEventListener('DOMContentLoaded', function () {
         modal.querySelector('#playerActionTitle').textContent = `Ações para: ${character.name}`;
         modal.querySelector('#playerActionTargetId').value = character.id;
         modal.querySelector('#playerActionHealth').value = character.health || 0;
-        
+
         const maxHealth = character.maxHealth || character.health || 10;
         modal.querySelector('#playerActionMaxHealth').value = maxHealth;
-        
+
         ui.playerActionKickBtn.textContent = character.type === 'npc' ? 'Deletar NPC' : 'Expulsar Jogador';
 
         const itemSelect = modal.querySelector('#playerActionItemSelect');
@@ -498,7 +588,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (item) {
                     const itemEl = document.createElement('div');
                     itemEl.className = 'modal-inventory-item';
-                    
+
                     let useButton = '';
                     if (item.type === 'healing') {
                         useButton = `<button class="re-btn use-item-btn" data-character-id="${character.id}" data-item-index="${index}">Usar</button>`;
@@ -515,7 +605,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
         }
-        
+
         modal.style.display = 'block';
     };
 
@@ -543,9 +633,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (isNaN(health) || isNaN(maxHealth)) return showNotification("Valores de vida inválidos.", "error");
 
         playersRef.doc(playerId).update({
-                health,
-                maxHealth
-            })
+            health,
+            maxHealth
+        })
             .then(() => showNotification("Vida do personagem atualizada.", "success"))
             .catch(err => showNotification(`Erro: ${err.message}`, "error"));
     };
@@ -604,7 +694,7 @@ document.addEventListener('DOMContentLoaded', function () {
             closeModalId = 'itemModal';
             data = {
                 name: form.itemName.value,
-                image: form.itemImage.value,
+                image: form.itemImageUrl.value,
                 type: form.itemType.value,
                 description: form.itemDescription.value,
             };
@@ -612,17 +702,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (data.type === 'weapon') data.ammoCount = parseInt(form.itemAmmoCount.value) || 0;
             if (data.type === 'document') data.content = form.itemDocumentContent.value || '';
 
-        } else if (form.id === 'enemyForm') {
-            entityName = 'Inimigo';
-            collection = enemiesRef;
-            closeModalId = 'enemyModal';
-            data = {
-                name: form.enemyName.value,
-                image: form.enemyImage.value,
-                health: parseInt(form.enemyHealth.value),
-                damage: form.enemyDamage.value,
-                behavior: form.enemyBehavior.value,
-            };
         } else if (form.id === 'npcForm') { // NOVO FORMULÁRIO DE NPC
             entityName = 'NPC';
             collection = playersRef;
@@ -638,6 +717,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 inventory: Array(8).fill(null), // Cria inventário vazio
             };
         }
+        else if (form.id === 'enemyForm') {
+            entityName = 'Inimigo';
+            collection = enemiesRef;
+            closeModalId = 'enemyModal';
+            data = {
+                name: form.enemyName.value,
+                image: form.enemyImageUrl.value, // ALTERADO AQUI
+                health: parseInt(form.enemyHealth.value),
+                damage: form.enemyDamage.value,
+                behavior: form.enemyBehavior.value,
+            };
+        }
 
         const promise = id ? collection.doc(id).update(data) : collection.add({ ...data, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
         promise.then(() => {
@@ -645,6 +736,25 @@ document.addEventListener('DOMContentLoaded', function () {
             closeModal(closeModalId);
         }).catch(err => showNotification(`Erro: ${err.message}`, 'error'));
     };
+
+    // Adicione esta nova função no seu master.js
+const handleDelete = async (collectionName, docId, entityName) => {
+    const confirmed = await showConfirmation(`Excluir ${entityName}`, `Tem certeza que deseja excluir este ${entityName.toLowerCase()} permanentemente?`);
+    if (confirmed) {
+        let ref;
+        if (collectionName === 'items') ref = itemsRef;
+        else if (collectionName === 'enemies') ref = enemiesRef;
+        else if (collectionName === 'maps') ref = mapsRef;
+        else {
+            showNotification('Tipo de entidade desconhecido para exclusão.', 'error');
+            return;
+        }
+
+        ref.doc(docId).delete()
+            .then(() => showNotification(`${entityName} excluído com sucesso.`, 'success'))
+            .catch(err => showNotification(`Erro ao excluir: ${err.message}`, 'error'));
+    }
+};
 
     // --- LÓGICA DO MAPA (SIMPLIFICADA) ---
     const setupMap = () => {
@@ -760,12 +870,12 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     };
-    
+
     // --- LÓGICA DE GERAÇÃO ALEATÓRIA PARA NPCS ---
     const generateRandomNpcStats = () => {
         const attributes = ["Força", "Agilidade", "Vitalidade", "Inteligência", "Percepção"];
         const characteristics = ["Agressivo", "Medroso", "Calmo", "Oportunista", "Lento", "Rápido", "Silencioso", "Barulhento", "Defensivo"];
-        
+
         let randomAttributes = attributes.map(attr => {
             const value = Math.floor(Math.random() * 8) + 5; // Gera valor entre 5 e 12
             return `${attr}: ${value}`;
@@ -805,7 +915,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (initiatives.length === 0) return;
 
         initiatives.sort((a, b) => b.initiativeScore - a.initiativeScore);
-        
+
         // Adiciona a propriedade 'isActiveTurn'
         const finalInitiativeList = initiatives.map((char, index) => ({
             ...char,
@@ -831,7 +941,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Força a atualização do estado local e a renderização imediata da lista
         appState.initiativeList = finalInitiativeList;
         renderInitiativeList();
-        
+
         showNotification('Lista de iniciativa atualizada e ordenada!', 'success');
     };
 
@@ -845,7 +955,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const nextIndex = (currentIndex + 1) % appState.initiativeList.length;
-        
+
         const batch = db.batch();
         batch.update(initiativeRef.doc(appState.initiativeList[currentIndex].id), { isActiveTurn: false });
         batch.update(initiativeRef.doc(appState.initiativeList[nextIndex].id), { isActiveTurn: true });
@@ -854,7 +964,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const handleClearInitiative = async () => {
         const confirmed = await showConfirmation('Limpar Iniciativa', 'Tem certeza que deseja remover todos da lista de iniciativa?');
-        if(confirmed) {
+        if (confirmed) {
             const oldInitiative = await initiativeRef.get();
             const batch = db.batch();
             oldInitiative.docs.forEach(doc => batch.delete(doc.ref));
@@ -876,6 +986,47 @@ document.addEventListener('DOMContentLoaded', function () {
                 campaignRef.delete().catch(err => {
                     showNotification(`Erro ao encerrar sessão: ${err.message}`, 'error');
                 });
+            }
+        });
+
+        // Listener para o botão de upload de imagem do inimigo
+        ui.uploadEnemyImageBtn.addEventListener('click', () => {
+            openCloudinaryWidget((imageUrl) => {
+                ui.enemyImageUrl.value = imageUrl;
+                ui.enemyImagePreview.innerHTML = `
+            <img src="${imageUrl}" alt="Preview" style="max-width: 100px; max-height: 100px; border: 1px solid var(--primary-color);">
+            <button type="button" id="removeEnemyImageBtn" class="re-btn re-btn-danger" title="Remover Imagem"><i class="fas fa-trash"></i></button>
+        `;
+                showNotification('Imagem carregada com sucesso!', 'success');
+            });
+        });
+
+        // NOVO Listener para o botão de upload de imagem do mapa
+        ui.uploadMapImageBtn.addEventListener('click', () => {
+            openCloudinaryWidget((imageUrl) => {
+                ui.mapUrlHiddenInput.value = imageUrl;
+                ui.mapImagePreview.innerHTML = `<img src="${imageUrl}" alt="Preview do Mapa" style="max-width: 150px; border: 1px solid var(--primary-color); border-radius: 4px;">`;
+            });
+        });
+
+        // Listener para o botão de remover imagem do inimigo
+        ui.enemyModal.addEventListener('click', async (e) => {
+            if (e.target.closest('#removeEnemyImageBtn')) {
+                e.preventDefault();
+                const confirmed = await showConfirmation('Remover Imagem', 'Tem certeza que deseja remover a imagem deste inimigo?');
+                if (!confirmed) return;
+
+                const enemyId = ui.enemyForm.querySelector('#enemyId').value;
+
+                // Limpa a interface
+                ui.enemyImageUrl.value = '';
+                ui.enemyImagePreview.innerHTML = '';
+
+                // Se estiver editando, atualiza o Firebase
+                if (enemyId) {
+                    await enemiesRef.doc(enemyId).update({ image: '' });
+                }
+                showNotification('Imagem removida do inimigo!', 'success');
             }
         });
 
@@ -927,14 +1078,48 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (enemyData) openModal('enemyModal', enemyData);
             }
         });
-        
+
+        // Listener para o botão de remover imagem do item (usando delegação de evento)
+        ui.itemModal.addEventListener('click', async (e) => {
+            // Verifica se o elemento clicado é o botão de remover
+            if (e.target.closest('#removeItemImageBtn')) {
+                e.preventDefault(); // Previne qualquer comportamento padrão do botão
+
+                const confirmed = await showConfirmation('Remover Imagem', 'Tem certeza que deseja remover a imagem deste item? A imagem não será deletada do Cloudinary, apenas do item.');
+                if (!confirmed) return;
+
+                const imageUrlInput = document.getElementById('itemImageUrl');
+                const previewContainer = document.getElementById('itemImagePreview');
+                const form = ui.itemForm;
+                const itemId = form.querySelector('#itemId').value;
+
+                // Limpa os campos na interface
+                imageUrlInput.value = '';
+                previewContainer.innerHTML = '';
+
+                // Se estivermos editando um item existente, atualiza o Firebase
+                if (itemId) {
+                    try {
+                        await itemsRef.doc(itemId).update({ image: '' });
+                        showNotification('Imagem removida do item com sucesso!', 'success');
+                    } catch (error) {
+                        showNotification('Erro ao remover imagem do banco de dados.', 'error');
+                        console.error("Erro ao atualizar item:", error);
+                    }
+                } else {
+                    // Se for um item novo (sem ID), apenas limpamos a interface, o que já foi feito.
+                    showNotification('Imagem removida do novo item.', 'info');
+                }
+            }
+        });
+
         // NOVO: Listener para rolagem de dados do NPC
         ui.npcList.addEventListener('click', (e) => {
             const target = e.target.closest('.npc-dice-roll-btn');
-            if(target) {
+            if (target) {
                 const npcName = target.dataset.npcName;
                 const diceRoll = prompt(`Rolar dado para ${npcName} (Ex: 1d20, 2d6+3):`, "1d20");
-                if(diceRoll) {
+                if (diceRoll) {
                     try {
                         const [numDice, rest] = diceRoll.toLowerCase().split('d');
                         const [sides, modifierStr] = rest.split(/([+-])/);
@@ -943,23 +1128,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
                         let total = 0;
                         let rolls = [];
-                        for(let i = 0; i < parseInt(numDice); i++) {
+                        for (let i = 0; i < parseInt(numDice); i++) {
                             const roll = Math.floor(Math.random() * parseInt(sides)) + 1;
                             rolls.push(roll);
                             total += roll;
                         }
-                        
+
                         let modifierText = "";
-                        if(modifierSign && modifierValue) {
-                            if(modifierSign === '+') total += modifierValue;
-                            if(modifierSign === '-') total -= modifierValue;
+                        if (modifierSign && modifierValue) {
+                            if (modifierSign === '+') total += modifierValue;
+                            if (modifierSign === '-') total -= modifierValue;
                             modifierText = ` ${modifierSign} ${modifierValue}`;
                         }
-                        
+
                         const rollText = `(${npcName}) rolou ${diceRoll}: [${rolls.join(', ')}]${modifierText} = ${total}`;
                         eventsRef.add({ type: 'dice_roll', senderId: 'npc_roll', senderName: npcName, text: rollText, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
 
-                    } catch(err) {
+                    } catch (err) {
                         showNotification('Formato de dado inválido. Use "XdY" ou "XdY+Z".', 'error');
                     }
                 }
@@ -979,18 +1164,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
         ui.addMapBtn.addEventListener('click', () => {
             const name = ui.mapNameInput.value.trim();
-            const url = ui.mapUrlInput.value.trim();
+            const url = ui.mapUrlHiddenInput.value.trim(); // ALTERADO AQUI
             if (name && url) {
                 mapsRef.add({
                     name,
                     url
                 }).then(() => {
                     showNotification('Mapa adicionado!', 'success');
+                    // Limpa os campos após o sucesso
                     ui.mapNameInput.value = '';
-                    ui.mapUrlInput.value = '';
+                    ui.mapUrlHiddenInput.value = '';
+                    ui.mapImagePreview.innerHTML = '';
                 }).catch(err => showNotification(`Erro: ${err.message}`, 'error'));
             } else {
-                showNotification('Preencha o nome e a URL do mapa.', 'error');
+                showNotification('Preencha o nome e faça o upload da imagem do mapa.', 'error');
             }
         });
 
@@ -1049,7 +1236,7 @@ document.addEventListener('DOMContentLoaded', function () {
         ui.masterChatInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendChatMessage();
         });
-        
+
         // LISTENERS DA INICIATIVA
         ui.getInitiativeFromAllBtn.addEventListener('click', handleGetInitiative);
         ui.nextInitiativeBtn.addEventListener('click', handleNextInitiative);
@@ -1070,6 +1257,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 icon.classList.toggle('fa-chevron-down');
             });
         }
+
+        document.getElementById('uploadItemImageBtn').addEventListener('click', () => {
+            openCloudinaryWidget((imageUrl) => {
+                // Quando o upload for bem-sucedido, armazene a URL no input oculto
+                document.getElementById('itemImageUrl').value = imageUrl;
+                // E mostre um preview da imagem
+                const previewContainer = document.getElementById('itemImagePreview');
+                previewContainer.innerHTML = `<img src="${imageUrl}" alt="Preview" style="max-width: 100px; max-height: 100px; border: 1px solid var(--primary-color);">`;
+                showNotification('Imagem carregada com sucesso!', 'success');
+            });
+        });
 
         // NOVO: Listener para ações de itens no modal
         ui.playerActionModal.addEventListener('click', (e) => {
