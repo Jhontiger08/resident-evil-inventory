@@ -377,11 +377,18 @@
         }
     </style>
 
+<!-- Script do Cloudinary Upload Widget para upload de imagens -->
+    <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+
 </head>
 
 <body>
+    <!-- Contêiner para notificações flutuantes -->
     <div id="notification-container"></div>
+
+    <!-- Contêiner principal do painel do mestre -->
     <div class="master-container">
+        <!-- Cabeçalho do painel -->
         <header class="master-header">
             <div class="campaign-info">
                 <h1 id="campaignTitle">Carregando...</h1>
@@ -396,36 +403,41 @@
             </div>
         </header>
 
+        <!-- Corpo principal do painel, com painéis laterais e de ferramentas -->
         <main class="master-body">
+            <!-- Painel lateral esquerdo para jogadores e NPCs -->
             <aside class="players-panel">
                 <h2><i class="fas fa-users"></i> Jogadores <span id="playerCount">(0/6)</span></h2>
                 <div class="player-list" id="playerList">
-                    <div class="empty-placeholder">Nenhum jogador conectado</div>
+                    <div class="empty-placeholder">Nenhum jogador conectado.</div>
                 </div>
 
                 <h2 style="margin-top: 1.5rem;"><i class="fas fa-robot"></i> NPCs</h2>
                 <div class="player-list" id="npcList">
-                    <div class="empty-placeholder">Nenhum NPC criado</div>
+                    <div class="empty-placeholder">Nenhum NPC criado.</div>
                 </div>
                 <div class="player-actions" style="margin-top: 1rem;">
                     <button id="addNpcBtn" class="re-btn"><i class="fas fa-user-plus"></i> Adicionar NPC</button>
                 </div>
             </aside>
 
+            <!-- Seção principal de ferramentas com abas -->
             <section class="tools-panel">
+                <!-- Abas de navegação -->
                 <div class="tabs">
                     <button class="tab-btn active" data-tab="notes"><i class="fas fa-book-open"></i> Anotações</button>
                     <button class="tab-btn" data-tab="items"><i class="fas fa-briefcase"></i> Itens</button>
                     <button class="tab-btn" data-tab="enemies"><i class="fas fa-skull-crossbones"></i> Inimigos</button>
                     <button class="tab-btn" data-tab="map"><i class="fas fa-map-marked-alt"></i> Mapa</button>
                     <button class="tab-btn" data-tab="dice"><i class="fas fa-dice-d20"></i> Dados</button>
-                    <button class="tab-btn" data-tab="initiative"><i class="fas fa-list-ol"></i> Iniciativa</button>
                 </div>
 
+                <!-- Conteúdo da aba de Anotações -->
                 <div class="tab-content active" id="notesTab">
                     <textarea id="masterNotes" placeholder="Anotações privadas do mestre..."></textarea>
                 </div>
 
+                <!-- Conteúdo da aba de Itens -->
                 <div class="tab-content" id="itemsTab">
                     <div class="controls-bar">
                         <button id="addItemBtn" class="re-btn"><i class="fas fa-plus-circle"></i> Criar Novo
@@ -436,6 +448,7 @@
                     </div>
                 </div>
 
+                <!-- Conteúdo da aba de Inimigos -->
                 <div class="tab-content" id="enemiesTab">
                     <div class="controls-bar">
                         <button id="addEnemyBtn" class="re-btn"><i class="fas fa-plus-circle"></i> Adicionar
@@ -446,21 +459,23 @@
                     </div>
                 </div>
 
+                <!-- Conteúdo da aba de Mapa -->
                 <div class="tab-content" id="mapTab">
                     <div class="map-management">
                         <h3><i class="fas fa-map"></i> Gerenciar Mapas</h3>
-                        <div class="controls-bar">
+                        <div class="controls-bar map-controls-bar">
                             <input type="text" id="mapNameInput" placeholder="Nome do Mapa (Ex: Mansão 1F)">
-                            <div class="form-group">
+                            <div class="form-group upload-group">
                                 <button type="button" id="uploadMapImageBtn" class="re-btn re-btn-secondary">Fazer
                                     Upload da Imagem do Mapa</button>
                                 <input type="hidden" id="mapUrlHiddenInput">
-                                <div id="mapImagePreview" style="margin-top: 10px;"></div>
+                                <div id="mapImagePreview" class="image-preview-container"></div>
                             </div>
                             <button id="addMapBtn" class="re-btn">Adicionar Mapa</button>
-                            <div id="mapList" class="map-list"></div>
                         </div>
-                        <div class="map-container">
+                        <div id="mapList" class="map-list"></div>
+
+                        <div class="map-viewer">
                             <h3><i class="fas fa-eye"></i> Visualizador de Mapa</h3>
                             <div class="map-display">
                                 <img src="" alt="Selecione um mapa na lista acima" id="masterMap">
@@ -471,61 +486,51 @@
                                     <input type="checkbox" id="toggleFogOfWar" checked>
                                     <span class="slider round"></span>
                                 </label>
-                                <span style="margin-left: 8px;">Névoa de Guerra Ativada</span>
+                                <span class="map-tool-label">Névoa de Guerra Ativada</span>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="tab-content" id="diceTab">
-                        <div class="dice-roller">
-                            <h3>Rolador de Dados (Envia para o Chat)</h3>
-                            <div class="dice-quantity">
-                                <label for="diceQuantityInput">Quantidade:</label>
-                                <input type="number" id="diceQuantityInput" value="1" min="1" max="100">
-                            </div>
-                            <div class="dice-controls">
-                                <button class="dice-btn re-btn" data-sides="4">d4</button>
-                                <button class="dice-btn re-btn" data-sides="6">d6</button>
-                                <button class="dice-btn re-btn" data-sides="8">d8</button>
-                                <button class="dice-btn re-btn" data-sides="10">d10</button>
-                                <button class="dice-btn re-btn" data-sides="12">d12</button>
-                                <button class="dice-btn re-btn" data-sides="20">d20</button>
-                            </div>
+                <!-- Conteúdo da aba de Dados -->
+                <div class="tab-content" id="diceTab">
+                    <div class="dice-roller">
+                        <h3>Rolador de Dados (Envia para o Chat)</h3>
+                        <div class="dice-quantity">
+                            <label for="diceQuantityInput">Quantidade:</label>
+                            <input type="number" id="diceQuantityInput" value="1" min="1" max="100">
+                        </div>
+                        <div class="dice-controls">
+                            <button class="dice-btn re-btn" data-sides="4">d4</button>
+                            <button class="dice-btn re-btn" data-sides="6">d6</button>
+                            <button class="dice-btn re-btn" data-sides="8">d8</button>
+                            <button class="dice-btn re-btn" data-sides="10">d10</button>
+                            <button class="dice-btn re-btn" data-sides="12">d12</button>
+                            <button class="dice-btn re-btn" data-sides="20">d20</button>
                         </div>
                     </div>
+                </div>
 
-                    <div class="tab-content" id="initiativeTab">
-                        <h3><i class="fas fa-list-ol"></i> Ordem de Iniciativa</h3>
-                        <div class="controls-bar">
-                            <button id="getInitiativeFromAllBtn" class="re-btn"><i class="fas fa-users-cog"></i> Coletar
-                                de
-                                Todos</button>
-                            <button id="nextInitiativeBtn" class="re-btn re-btn-secondary"><i
-                                    class="fas fa-arrow-right"></i> Próximo</button>
-                            <button id="clearInitiativeBtn" class="re-btn re-btn-danger"><i class="fas fa-trash"></i>
-                                Limpar
-                                Lista</button>
-                        </div>
-                        <div id="initiativeList" class="initiative-list-container">
-                            <div class="empty-placeholder">A lista de iniciativa está vazia.</div>
-                        </div>
-                    </div>
+                
             </section>
         </main>
     </div>
 
+    <!-- Chat lateral fixo -->
     <aside class="master-chat">
         <div class="chat-header">
             <h2><i class="fas fa-comments"></i> Chat da Campanha</h2>
             <button id="toggleChatBtn" title="Minimizar/Maximizar Chat"><i class="fas fa-chevron-up"></i></button>
         </div>
         <div class="chat-messages" id="masterChatMessages"></div>
-        <div class="chat-input">
+        <div class="chat-input-container">
             <input type="text" id="masterChatInput" placeholder="Digite uma mensagem..."><button id="sendMasterMsgBtn"
                 class="re-btn"><i class="fas fa-paper-plane"></i></button>
         </div>
     </aside>
 
+    <!-- Modais -->
+    <!-- Modal de Confirmação Genérico -->
     <div id="confirmModal" class="master-modal">
         <div class="modal-content">
             <h2 id="confirmModalTitle">Confirmar</h2>
@@ -537,6 +542,7 @@
         </div>
     </div>
 
+    <!-- Modal de Ações do Jogador/NPC -->
     <div id="playerActionModal" class="master-modal">
         <div class="modal-content">
             <span class="close-modal" title="Fechar">&times;</span>
@@ -575,6 +581,7 @@
         </div>
     </div>
 
+    <!-- Modal de Item (Criar/Editar) -->
     <div id="itemModal" class="master-modal">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
@@ -590,7 +597,7 @@
                     <button type="button" id="uploadItemImageBtn" class="re-btn re-btn-secondary">Fazer Upload da
                         Imagem</button>
 
-                    <div id="itemImagePreview" style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
+                    <div id="itemImagePreview" class="image-preview-container">
                     </div>
 
                     <input type="hidden" id="itemImageUrl">
@@ -615,6 +622,7 @@
         </div>
     </div>
 
+    <!-- Modal de Inimigo (Criar/Editar) -->
     <div id="enemyModal" class="master-modal">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
@@ -630,8 +638,7 @@
                     <button type="button" id="uploadEnemyImageBtn" class="re-btn re-btn-secondary">Fazer Upload da
                         Imagem</button>
 
-                    <div id="enemyImagePreview"
-                        style="margin-top: 10px; display: flex; align-items: center; gap: 10px;"></div>
+                    <div id="enemyImagePreview" class="image-preview-container"></div>
 
                     <input type="hidden" id="enemyImageUrl">
                 </div>
@@ -652,6 +659,7 @@
         </div>
     </div>
 
+    <!-- Modal de NPC (Criar/Editar) -->
     <div id="npcModal" class="master-modal">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
@@ -685,44 +693,10 @@
         </div>
     </div>
 
-    <div id="imageHelpModal" class="master-modal">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h2>Como Obter um Link Direto de Imagem</h2>
-            <div class="help-content">
-                <p>Para que as imagens funcionem corretamente, você precisa usar um <strong>link direto</strong>, que
-                    termina com <code>.png</code>, <code>.jpg</code>, <code>.gif</code>, ou <code>.webp</code>.</p>
-                <h3>Usando o Imgur</h3>
-                <ol>
-                    <li>Acesse <a href="https://imgur.com/upload" target="_blank">imgur.com/upload</a> e envie sua
-                        imagem.</li>
-                    <li>Após o upload, <strong>não copie o link da barra de endereço do navegador</strong>.</li>
-                    <li>Clique com o <strong>botão direito</strong> na sua imagem.</li>
-                    <li>No menu, selecione a opção <strong>"Copiar endereço da imagem"</strong>.</li>
-                </ol>
-                <p>Exemplo de link incorreto: <code>https://imgur.com/a/abcdef</code></p>
-                <p>Exemplo de link <strong>correto</strong>: <code>https://i.imgur.com/exemplo.png</code></p>
-                <h3>Usando o Discord</h3>
-                <ol>
-                    <li>Arraste e solte (ou envie) sua imagem em qualquer canal de texto no Discord.</li>
-                    <li>Depois que a imagem carregar, clique nela para abri-la em tela cheia.</li>
-                    <li>Com a imagem ampliada, clique com o <strong>botão direito</strong> nela.</li>
-                    <li>No menu, selecione a opção <strong>"Copiar link da imagem"</strong>.</li>
-                </ol>
-                <p>Exemplo de link <strong>correto</strong>:
-                    <code>https://cdn.discordapp.com/attachments/.../imagem.png</code>
-                </p>
-                <hr style="border-color: rgba(192,160,80,0.2); margin: 1rem 0;">
-                <p><strong>Dica final:</strong> Para testar, cole o link em uma nova aba do navegador. Se a imagem
-                    aparecer sozinha, sem nenhum site ao redor, o link está correto!</p>
-            </div>
-        </div>
-    </div>
-
+    <!-- Elemento de áudio para som de dados -->
     <audio id="master-dice-audio" src="sounds/dice1.mp3"></audio>
 
-    <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
-
+    <!-- Script JavaScript principal da página -->
     <script src="master.js" defer></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
